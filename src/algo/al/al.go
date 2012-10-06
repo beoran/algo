@@ -391,7 +391,6 @@ func (self *Event) IsUser() bool {
 	return EVENT_TYPE_IS_USER(t)
 }
 
-type Display C.ALLEGRO_DISPLAY
 
 // Returns the display that has emitted the event. Will return nil if 
 // this is not a display event.
@@ -399,7 +398,7 @@ func (self *Event) DisplayDisplay() *Display {
 	if !(self.IsDisplay()) {
 		return nil
 	}
-	return (*Display)(C.algo_event_display(self.toC()).source)
+	return wrapDisplayRaw(C.algo_event_display(self.toC()).source)
 }
 
 // Returns the X position of the display event. Will return garbage 
@@ -466,7 +465,7 @@ func (self *Event) KeyboardDisplay() *Display {
 	if !(self.IsKeyboard()) {
 		return nil
 	}
-	return (*Display)(C.algo_event_keyboard(self.toC()).display)
+	return wrapDisplayRaw(C.algo_event_keyboard(self.toC()).display)
 }
 
 // Returns the keycode of the keyboard event. Returns garbage 
@@ -559,7 +558,7 @@ func (self *Event) MouseDisplay() *Display {
 	if !(self.IsMouse()) {
 		return nil
 	}
-	return (*Display)(C.algo_event_mouse(self.toC()).display)
+	return wrapDisplayRaw(C.algo_event_mouse(self.toC()).display)
 }
 
 // Returns the error of the timer event. Returns garbage 
