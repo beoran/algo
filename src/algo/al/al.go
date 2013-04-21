@@ -22,8 +22,8 @@ func AL_ID(a, b, c, d int) int {
 }
 
 const VERSION = 5
-const SUB_VERSION = 0
-const WIP_VERSION = 7
+const SUB_VERSION = 1
+const WIP_VERSION = 5
 const RELEASE_NUMBER = 1
 const VERSION_STR = "5.0.7"
 const DATE_STR = "2012"
@@ -43,7 +43,8 @@ func GetAllegroVersion() uint32 {
 
 // Initializes the Allegro system.
 func Initialize() bool {
-	return bool(C.algo_initialize())
+	return bool(C.al_install_system(VERSION_INT, nil))
+//	return bool(C.algo_initialize())
 }
 
 // Cleans up the Allegro system. Needed after calling Initialize.
@@ -753,3 +754,9 @@ func (self *Timer) AddCount(count int) {
 func (self *Timer) GetEventSource() *EventSource {
 	return (*EventSource)(C.al_get_timer_event_source(self.handle))
 }
+
+// Do nothing function for benchmarking only
+func DoNothing() { 
+  C.algo_do_nothing()
+}
+

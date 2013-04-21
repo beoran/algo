@@ -141,11 +141,12 @@ func makeDisplay() (*Display) {
   flags := 0
   // Use full screen mode if needed.
   if TEST_FULLSCREEN  { 
-    flags = FULLSCREEN | GENERATE_EXPOSE_EVENTS;
+    flags = FULLSCREEN // | GENERATE_EXPOSE_EVENTS
   } 
   SetNewDisplayFlags(flags)
   // Create a window to display things on: 640x480 pixels.
-  display := CreateDisplay(SCREEN_W, SCREEN_H)  
+  display := CreateDisplay(SCREEN_W, SCREEN_H)
+  display.Resize(SCREEN_W, SCREEN_H)
   return display
 }
 
@@ -158,7 +159,7 @@ func TestBasicDisplay(t *testing.T) {
     t.Error("Error creating display.")
   }
   /*
-  if !display.Resize(SCREEN_W, SCREEN_H) {
+  if ! {
     t.Error("Resize of display failed.")
   }
   */
@@ -167,10 +168,12 @@ func TestBasicDisplay(t *testing.T) {
   ClearToColor(blue)
   DrawPixel(20.0, 10.0, yellow)  
   FlipDisplay()
+  Rest(1.0)
   ClearToColor(yellow)
   DrawPixel(20.0, 10.0, blue)
   FlipDisplay()
   display.Destroy() 
+  Rest(1.0)
 }
 
 // Benchmark basic display function ClearToColor
@@ -207,6 +210,12 @@ func BenchmarkFlipDisplay(b *testing.B) {
     display.Destroy()
 }
 
-
+// Benchmarking of C call overhead
+// Benchmark basic display function FlipDisplay
+func BenchmarkDoNothing(b *testing.B) {
+    for i := 0; i < b.N; i++ {
+        DoNothing()
+    }
+}
 
 
