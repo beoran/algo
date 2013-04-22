@@ -128,7 +128,7 @@ func (upload *UploadBitmapFunction) toC() UploadBitmapC {
 }
 
 func CreateCustomBitmapRaw(w, h int, upload UploadBitmapFunction, data unsafe.Pointer) *Bitmap {
-	fn := (*C.go_upload_bitmap_function)(unsafe.Pointer(C.go_upload_bitmap_cb))
+	fn := (C.function_pointer)(unsafe.Pointer(C.go_upload_bitmap_cb))
 	return wrapBitmapRaw(C.al_create_custom_bitmap(C.int(w), C.int(h), fn, data))
 }
 
@@ -220,3 +220,8 @@ func (self *Bitmap) Convert() {
 func ConvertBitmaps() {
 	C.al_convert_bitmaps()
 }
+
+/*
+void qsort(void *base, size_t nmemb, size_t size,
+                  int (*compar)(const void *, const void *));
+*/

@@ -13,3 +13,15 @@ import "unsafe"
 func go_upload_bitmap(bitmap unsafe.Pointer, data unsafe.Pointer) C.bool {
 	return false
 }
+
+var CallbackInt func() int = nil
+
+// generic function pointer caller
+
+//export go_generic_callback_int
+func go_generic_callback_int() int {
+	if CallbackInt != nil {
+		return CallbackInt()
+	}
+	return 0
+}
