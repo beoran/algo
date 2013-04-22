@@ -1,7 +1,7 @@
 package al
 
 /*
-#cgo pkg-config: allegro-5.0
+#cgo pkg-config: allegro-5
 #cgo CFLAGS: -I/usr/local/include
 #cgo linux LDFLAGS: -lc_nonshared
 #include <stdlib.h>
@@ -11,7 +11,7 @@ package al
 */
 import "C"
 
-// import "unsafe"
+import "unsafe"
 import "runtime"
 
 const PI = 3.14159265358979323846
@@ -31,6 +31,22 @@ const DATE = 20120624 /* yyyymmdd */
 const VERSION_INT = ((VERSION << 24) | (SUB_VERSION << 16) |
 	(WIP_VERSION << 8) | RELEASE_NUMBER)
 
+// Converts bool to Allegro's C.bool
+func b2cb(res bool) C.bool {
+	if res {
+		return C.bool(true)
+	}
+	return C.bool(false)
+}
+
+// Converts C.bool to Allegro's C.bool
+func cb2b(res C.bool) bool {
+	if res {
+		return true
+	}
+	return false
+}
+
 // Checks if the basic Allegro system is installed or not.
 func IsSystemInstalled() bool {
 	return bool(C.al_is_system_installed())
@@ -44,12 +60,12 @@ func GetAllegroVersion() uint32 {
 // Initializes the Allegro system.
 func Initialize() bool {
 	return bool(C.al_install_system(VERSION_INT, nil))
-//	return bool(C.algo_initialize())
+	//	return bool(C.algo_initialize())
 }
 
 // Cleans up the Allegro system. Needed after calling Initialize.
 func Cleanup() {
-	C.algo_atexit_cleanup()
+	C.al_uninstall_system()
 }
 
 // Installs the Allegro system. 
@@ -341,19 +357,71 @@ func (self *Event) toC() *C.ALLEGRO_EVENT {
 	return (*C.ALLEGRO_EVENT)(self)
 }
 
+// Returns an unsafe pointer to the event 
+func (self *Event) toPointer() unsafe.Pointer {
+	return unsafe.Pointer(self.toC())
+}
+
+// Converts wrapper Event pointer to C Allegro any event
+func (self *Event) ANY_EVENT() *C.ALLEGRO_ANY_EVENT {
+	return (*C.ALLEGRO_ANY_EVENT)(self.toPointer())
+}
+
+// Converts wrapper Event pointer to C Allegro display event
+func (self *Event) DISPLAY_EVENT() *C.ALLEGRO_DISPLAY_EVENT {
+	return (*C.ALLEGRO_DISPLAY_EVENT)(self.toPointer())
+}
+
+// Converts wrapper Event pointer to C Allegro joystick event
+func (self *Event) JOYSTICK_EVENT() *C.ALLEGRO_JOYSTICK_EVENT {
+	return (*C.ALLEGRO_JOYSTICK_EVENT)(self.toPointer())
+}
+
+// Converts wrapper Event pointer to C Allegro event
+func (self *Event) KEYBOARD_EVENT() *C.ALLEGRO_KEYBOARD_EVENT {
+	return (*C.ALLEGRO_KEYBOARD_EVENT)(self.toPointer())
+}
+
+// Converts wrapper Event pointer to C Allegro touch event
+func (self *Event) TOUCH_EVENT() *C.ALLEGRO_TOUCH_EVENT {
+	return (*C.ALLEGRO_TOUCH_EVENT)(self.toPointer())
+}
+
+// Converts wrapper Event pointer to C Allegro mouse event
+func (self *Event) MOUSE_EVENT() *C.ALLEGRO_MOUSE_EVENT {
+	return (*C.ALLEGRO_MOUSE_EVENT)(self.toPointer())
+}
+
+// Converts wrapper Event pointer to C Allegro timer event
+func (self *Event) TIMER_EVENT() *C.ALLEGRO_TIMER_EVENT {
+	return (*C.ALLEGRO_TIMER_EVENT)(self.toPointer())
+}
+
+// Converts wrapper Event pointer to C Allegro event
+func (self *Event) USER_EVENT() *C.ALLEGRO_USER_EVENT {
+	return (*C.ALLEGRO_USER_EVENT)(self.toPointer())
+}
+
+/*
+// Converts wrapper Event pointer to C Allegro event
+func (self *Event) _EVENT() *C.ALLEGRO__EVENT {
+	return (*C.ALLEGRO__EVENT)(self.toPointer())
+}
+*/
+
 // Returns the type of the event.
 func (self *Event) Type() int {
-	return int(C.algo_event_type(self.toC()))
+	return int(self.ANY_EVENT()._type)
 }
 
 // Returns the timestamp of the event.
 func (self *Event) Timestamp() float64 {
-	return float64(C.algo_event_any(self.toC()).timestamp)
+	return float64(self.ANY_EVENT().timestamp)
 }
 
 // Returns the event source of the event
 func (self *Event) EventSource() *EventSource {
-	return (*EventSource)(C.algo_event_any(self.toC()).source)
+	return (*EventSource)(self.ANY_EVENT().source)
 }
 
 // Returns true if this is a dispay event, false if not.
@@ -392,6 +460,15 @@ func (self *Event) IsUser() bool {
 	return EVENT_TYPE_IS_USER(t)
 }
 
+// Returns the event's source pointer
+func (self *Event) EVENT_SOURCE() *C.ALLEGRO_EVENT_SOURCE {
+	return self.ANY_EVENT().source
+}
+
+// Returns an unsafe pointer to the event's source pointer
+func (self *Event) EVENT_SOURCE_PTR() unsafe.Pointer {
+	return unsafe.Pointer(self.ANY_EVENT())
+}
 
 // Returns the display that has emitted the event. Will return nil if 
 // this is not a display event.
@@ -399,37 +476,37 @@ func (self *Event) DisplayDisplay() *Display {
 	if !(self.IsDisplay()) {
 		return nil
 	}
-	return wrapDisplayRaw(C.algo_event_display(self.toC()).source)
+	return wrapDisplayRaw((*C.ALLEGRO_DISPLAY)(self.EVENT_SOURCE_PTR()))
 }
 
 // Returns the X position of the display event. Will return garbage 
 // if this is not a display event.
 func (self *Event) DisplayX() int {
-	return int(C.algo_event_display(self.toC()).x)
+	return int((self.DISPLAY_EVENT()).x)
 }
 
 // Returns the Y position of the display event. Will return garbage 
 // if this is not a display event.
 func (self *Event) DisplayY() int {
-	return int(C.algo_event_display(self.toC()).y)
+	return int(self.DISPLAY_EVENT().y)
 }
 
 // Returns the width of the display event. Will return garbage 
 // if this is not a display event.
 func (self *Event) DisplayWidth() int {
-	return int(C.algo_event_display(self.toC()).width)
+	return int(self.DISPLAY_EVENT().width)
 }
 
 // Returns the height of the display event. Will return garbage 
 // if this is not a display event.
 func (self *Event) DisplayHeight() int {
-	return int(C.algo_event_display(self.toC()).height)
+	return int(self.DISPLAY_EVENT().height)
 }
 
 // Returns the orientation of the display event. Will return garbage 
 // if this is not a display event.
 func (self *Event) DisplayOrientation() int {
-	return int(C.algo_event_display(self.toC()).orientation)
+	return int(self.DISPLAY_EVENT().orientation)
 }
 
 // XXX: maybe also wrap the source in a Joystick type? 
@@ -437,25 +514,25 @@ func (self *Event) DisplayOrientation() int {
 // Returns the stick number of the joystick event. Will return garbage 
 // if this is not a joystick event.
 func (self *Event) JoystickStick() int {
-	return int(C.algo_event_joystick(self.toC()).stick)
+	return int(self.JOYSTICK_EVENT().stick)
 }
 
 // Returns the axis number of the joystick event. Will return garbage 
 // if this is not a joystick event.
 func (self *Event) JoystickAxis() int {
-	return int(C.algo_event_joystick(self.toC()).axis)
+	return int(self.JOYSTICK_EVENT().axis)
 }
 
 // Returns the button number of the joystick event. Will return garbage 
 // if this is not a joystick event.
 func (self *Event) JoystickButton() int {
-	return int(C.algo_event_joystick(self.toC()).button)
+	return int(self.JOYSTICK_EVENT().button)
 }
 
 // Returns the position of the joystick event. Will return garbage 
 // if this is not a joystick event.
 func (self *Event) JoystickPos() float32 {
-	return float32(C.algo_event_joystick(self.toC()).pos)
+	return float32(self.JOYSTICK_EVENT().pos)
 }
 
 /// XXX also wrap Keyboard event source?
@@ -466,91 +543,91 @@ func (self *Event) KeyboardDisplay() *Display {
 	if !(self.IsKeyboard()) {
 		return nil
 	}
-	return wrapDisplayRaw(C.algo_event_keyboard(self.toC()).display)
+	return wrapDisplayRaw(self.KEYBOARD_EVENT().display)
 }
 
 // Returns the keycode of the keyboard event. Returns garbage 
 // if this is not a keyboard event.
 func (self *Event) KeyboardKeycode() int {
-	return int(C.algo_event_keyboard(self.toC()).keycode)
+	return int(self.KEYBOARD_EVENT().keycode)
 }
 
 // Returns the unichar of the keyboard event. Returns garbage 
 // if this is not a keyboard event.
 func (self *Event) KeyboardUnichar() rune {
-	return rune(C.algo_event_keyboard(self.toC()).unichar)
+	return rune(self.KEYBOARD_EVENT().unichar)
 }
 
 // Returns the modifiers of the keyboard event. Returns garbage 
 // if this is not a keyboard event.
 func (self *Event) KeyboardModifiers() int {
-	return int(C.algo_event_keyboard(self.toC()).modifiers)
+	return int(self.KEYBOARD_EVENT().modifiers)
 }
 
 // Returns is the keyboard event was autorepeated or not. Returns garbage 
 // if this is not a keyboard event.
 func (self *Event) KeyboardRepeat() bool {
-	return bool(C.algo_event_keyboard(self.toC()).repeat)
+	return bool(self.KEYBOARD_EVENT().repeat)
 }
 
 // Returns the x postion of the mouse event. Returns garbage 
 // if this is not a mouse event.
 func (self *Event) MouseX() int {
-	return int(C.algo_event_mouse(self.toC()).x)
+	return int(self.MOUSE_EVENT().x)
 }
 
 // Returns the y postion of the mouse event. Returns garbage 
 // if this is not a mouse event.
 func (self *Event) MouseY() int {
-	return int(C.algo_event_mouse(self.toC()).y)
+	return int(self.MOUSE_EVENT().y)
 }
 
 // Returns the z postion of the mouse event. Returns garbage 
 // if this is not a mouse event.
 func (self *Event) MouseZ() int {
-	return int(C.algo_event_mouse(self.toC()).z)
+	return int(self.MOUSE_EVENT().z)
 }
 
 // Returns the w postion of the mouse event. Returns garbage 
 // if this is not a mouse event.
 func (self *Event) MouseW() int {
-	return int(C.algo_event_mouse(self.toC()).w)
+	return int(self.MOUSE_EVENT().w)
 }
 
 // Returns the dx of the mouse event. Returns garbage 
 // if this is not a mouse event.
 func (self *Event) MouseDX() int {
-	return int(C.algo_event_mouse(self.toC()).dx)
+	return int(self.MOUSE_EVENT().dx)
 }
 
 // Returns the dy of the mouse event. Returns garbage 
 // if this is not a mouse event.
 func (self *Event) MouseDY() int {
-	return int(C.algo_event_mouse(self.toC()).dy)
+	return int(self.MOUSE_EVENT().dy)
 }
 
 // Returns the dz of the mouse event. Returns garbage 
 // if this is not a mouse event.
 func (self *Event) MouseDZ() int {
-	return int(C.algo_event_mouse(self.toC()).dz)
+	return int(self.MOUSE_EVENT().dz)
 }
 
 // Returns the dw of the mouse event. Returns garbage 
 // if this is not a mouse event.
 func (self *Event) MouseDW() int {
-	return int(C.algo_event_mouse(self.toC()).dw)
+	return int(self.MOUSE_EVENT().dw)
 }
 
 // Returns the button of the mouse event. Returns garbage 
 // if this is not a mouse event.
 func (self *Event) MouseButton() int {
-	return int(C.algo_event_mouse(self.toC()).button)
+	return int(self.MOUSE_EVENT().button)
 }
 
 // Returns the pressure of the mouse event. Returns garbage 
 // if this is not a mouse event.
 func (self *Event) MousePressure() float32 {
-	return float32(C.algo_event_mouse(self.toC()).pressure)
+	return float32(self.MOUSE_EVENT().pressure)
 }
 
 // Returns the display that has emitted the mouse event. Will return nil if 
@@ -559,19 +636,19 @@ func (self *Event) MouseDisplay() *Display {
 	if !(self.IsMouse()) {
 		return nil
 	}
-	return wrapDisplayRaw(C.algo_event_mouse(self.toC()).display)
+	return wrapDisplayRaw(self.MOUSE_EVENT().display)
 }
 
 // Returns the error of the timer event. Returns garbage 
 // if this is not a timer event.
 func (self *Event) TimerError() float64 {
-	return float64(C.algo_event_timer(self.toC()).error)
+	return float64(self.TIMER_EVENT().error)
 }
 
 // Returns the ticks of the timer event. Returns garbage 
 // if this is not a timer event.
 func (self *Event) TimerCount() int64 {
-	return int64(C.algo_event_timer(self.toC()).count)
+	return int64(self.TIMER_EVENT().count)
 }
 
 // Wrapping of user event seems not really meaningful in Go so leave that out.
@@ -756,7 +833,5 @@ func (self *Timer) GetEventSource() *EventSource {
 }
 
 // Do nothing function for benchmarking only
-func DoNothing() { 
-  C.algo_do_nothing()
+func DoNothing() {
 }
-
