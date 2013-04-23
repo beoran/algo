@@ -691,21 +691,22 @@ func (stream *AudioStream) AttachToVoice(voice *Voice) bool {
 	return cb2b(C.al_attach_audio_stream_to_voice(stream.handle, voice.handle))
 }
 
-// Attaches the given mixer to the voice
+// Attaches the given mixer to the voice.
 func (mixer *Mixer) AttachToVoice(voice *Voice) bool {
 	return cb2b(C.al_attach_mixer_to_voice(mixer.handle, voice.handle))
 }
 
-// Attaches the given voice to the mixer
+// Attaches the given voice to the mixer.
 func (voice *Voice) AttachMixer(mixer *Mixer) bool {
 	return cb2b(C.al_attach_mixer_to_voice(mixer.handle, voice.handle))
 }
 
-/*
+// Detaches the voice.
+func (voice *Voice) Detach() {
+	C.al_detach_voice(voice.handle)
+}
 
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_attach_mixer_to_voice, (ALLEGRO_MIXER *mixer,
-   ALLEGRO_VOICE *voice));
-ALLEGRO_KCM_AUDIO_FUNC(void, al_detach_voice, (ALLEGRO_VOICE *voice));
+/*
 
 ALLEGRO_KCM_AUDIO_FUNC(unsigned int, al_get_voice_frequency, (const ALLEGRO_VOICE *voice));
 ALLEGRO_KCM_AUDIO_FUNC(unsigned int, al_get_voice_position, (const ALLEGRO_VOICE *voice));
