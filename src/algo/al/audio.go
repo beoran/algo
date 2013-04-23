@@ -40,6 +40,11 @@ struct ALLEGRO_AUDIO_RECORDER_EVENT
 
 type AudioDepth int
 
+// Converts an AudioDepth to an ALLEGRO_AUDIO_DEPTH
+func (self AudioDepth) toC() C.ALLEGRO_AUDIO_DEPTH {
+	return C.ALLEGRO_AUDIO_DEPTH(self)
+}
+
 const (
 	AUDIO_DEPTH_INT8     AudioDepth = C.ALLEGRO_AUDIO_DEPTH_INT8
 	AUDIO_DEPTH_INT16    AudioDepth = C.ALLEGRO_AUDIO_DEPTH_INT16
@@ -61,6 +66,11 @@ const (
 */
 type ChannelConf int
 
+// Converts a ChannelConf to a C.ALLEGRO_CHANNEL_CONF
+func (self ChannelConf) toC() C.ALLEGRO_CHANNEL_CONF {
+	return (C.ALLEGRO_CHANNEL_CONF)(self)
+}
+
 const (
 	CHANNEL_CONF_1   ChannelConf = C.ALLEGRO_CHANNEL_CONF_1
 	CHANNEL_CONF_2   ChannelConf = C.ALLEGRO_CHANNEL_CONF_2
@@ -74,6 +84,11 @@ const (
 
 type PlayMode int
 
+// Converts a PlayMode to a C.ALLEGRO_PLAYMODE
+func (self PlayMode) toC() C.ALLEGRO_PLAYMODE {
+	return (C.ALLEGRO_PLAYMODE)(self)
+}
+
 const (
 	PLAYMODE_ONCE  PlayMode = C.ALLEGRO_PLAYMODE_ONCE
 	PLAYMODE_LOOP  PlayMode = C.ALLEGRO_PLAYMODE_LOOP
@@ -81,6 +96,11 @@ const (
 )
 
 type MixerQuality int
+
+// Converts a MixerQuaklity to a C.ALLEGRO_MIXER_QUALITY
+func (self MixerQuality) toC() C.ALLEGRO_MIXER_QUALITY {
+	return (C.ALLEGRO_MIXER_QUALITY)(self)
+}
 
 const (
 	MIXER_QUALITY_POINT  MixerQuality = C.ALLEGRO_MIXER_QUALITY_POINT
@@ -103,6 +123,10 @@ type Sample struct {
 }
 
 type SampleId C.ALLEGRO_SAMPLE_ID
+
+func (self *SampleId) toC() *C.ALLEGRO_SAMPLE_ID {
+	return (*C.ALLEGRO_SAMPLE_ID)(self)
+}
 
 type SampleInstance struct {
 	handle *C.ALLEGRO_SAMPLE_INSTANCE
@@ -154,8 +178,7 @@ func createSample(data []byte, samples uint, freq uint, depth AudioDepth, chan_c
 	// don't let allegro free the data, it's owned by Go.
 	// XXX: copy data here in stead of using the go data???
 	return C.al_create_sample(unsafe.Pointer(&data[0]), C.uint(samples),
-		C.uint(freq), C.ALLEGRO_AUDIO_DEPTH(depth),
-		C.ALLEGRO_CHANNEL_CONF(chan_conf), b2cb(false))
+		C.uint(freq), depth.toC(), chan_conf.toC(), b2cb(false))
 }
 
 // Creates a Sample with a Destroy finalizer set. BEWARE! data must be big enough fort he params
@@ -277,7 +300,7 @@ func (self *SampleInstance) SetPan(val float32) bool {
 
 // Sets the play mode of the sample instance.
 func (self *SampleInstance) SetPlaymode(val PlayMode) bool {
-	return cb2b(C.al_set_sample_instance_playmode(self.handle, C.ALLEGRO_PLAYMODE(val)))
+	return cb2b(C.al_set_sample_instance_playmode(self.handle, val.toC()))
 }
 
 // Sets the play status of the sample instance.
@@ -340,13 +363,13 @@ func wrapAudioStream(data *C.ALLEGRO_AUDIO_STREAM) *AudioStream {
 // Creates an audio stream, with finalizer installed.
 func CreateAudioStream(bufc, samples, freq uint, depth AudioDepth, chan_conf ChannelConf) *AudioStream {
 	return wrapAudioStream(C.al_create_audio_stream(C.size_t(bufc), C.uint(samples),
-		C.uint(freq), C.ALLEGRO_AUDIO_DEPTH(depth), C.ALLEGRO_CHANNEL_CONF(chan_conf)))
+		C.uint(freq), depth.toC(), chan_conf.toC()))
 }
 
 // Creates an audio stream, with NO finalizer installed.
 func CreateAudioStreamRaw(bufc, samples, freq uint, depth AudioDepth, chan_conf ChannelConf) *AudioStream {
 	return wrapAudioStreamRaw(C.al_create_audio_stream(C.size_t(bufc), C.uint(samples),
-		C.uint(freq), C.ALLEGRO_AUDIO_DEPTH(depth), C.ALLEGRO_CHANNEL_CONF(chan_conf)))
+		C.uint(freq), depth.toC(), chan_conf.toC()))
 }
 
 // Drains all data from an audio stream
@@ -436,7 +459,7 @@ func (self *AudioStream) SetPan(val float32) bool {
 
 // Sets the play mode of the audio stream.
 func (self *AudioStream) SetPlaymode(val PlayMode) bool {
-	return cb2b(C.al_set_audio_stream_playmode(self.handle, C.ALLEGRO_PLAYMODE(val)))
+	return cb2b(C.al_set_audio_stream_playmode(self.handle, val.toC()))
 }
 
 // Sets the play status of the audio stream.
@@ -515,7 +538,7 @@ func wrapMixer(data *C.ALLEGRO_MIXER) *Mixer {
 }
 
 func createMixer(freq uint, depth AudioDepth, chan_conf ChannelConf) *C.ALLEGRO_MIXER {
-	return C.al_create_mixer(C.uint(freq), C.ALLEGRO_AUDIO_DEPTH(depth), C.ALLEGRO_CHANNEL_CONF(chan_conf))
+	return C.al_create_mixer(C.uint(freq), depth.toC(), chan_conf.toC())
 }
 
 // Creates a new mixer with no finaliser attached to it.
@@ -608,7 +631,7 @@ func (self *Mixer) SetFrequency(val uint) bool {
 
 // Sets the quality of the mixer.
 func (self *Mixer) SetQuality(val MixerQuality) bool {
-	return cb2b(C.al_set_mixer_quality(self.handle, C.ALLEGRO_MIXER_QUALITY(val)))
+	return cb2b(C.al_set_mixer_quality(self.handle, val.toC()))
 }
 
 // Sets the gain of the mixer.
@@ -658,7 +681,7 @@ func wrapVoice(data *C.ALLEGRO_VOICE) *Voice {
 
 // creates a C voice 
 func createVoice(freq uint, depth AudioDepth, chan_conf ChannelConf) *C.ALLEGRO_VOICE {
-	return C.al_create_voice(C.uint(freq), C.ALLEGRO_AUDIO_DEPTH(depth), C.ALLEGRO_CHANNEL_CONF(chan_conf))
+	return C.al_create_voice(C.uint(freq), depth.toC(), chan_conf.toC())
 }
 
 // Creates a voice
@@ -706,36 +729,116 @@ func (voice *Voice) Detach() {
 	C.al_detach_voice(voice.handle)
 }
 
+// Returns the frequency of the voice
+func (self *Voice) Frequency() uint {
+	return uint(C.al_get_voice_frequency(self.handle))
+}
+
+// Returns the position of the voice
+func (self *Voice) Position() uint {
+	return uint(C.al_get_voice_position(self.handle))
+}
+
+// Returns the depth of the voice
+func (self *Voice) Depth() AudioDepth {
+	return AudioDepth(C.al_get_voice_depth(self.handle))
+}
+
+// Returns the channel configuration of the voice
+func (self *Voice) Channels() ChannelConf {
+	return ChannelConf(C.al_get_voice_channels(self.handle))
+}
+
+// Returns wheter or not the voice is playing
+func (self *Voice) Playing() bool {
+	return cb2b(C.al_get_voice_playing(self.handle))
+}
+
+// Sets the position of the voice.
+func (self *Voice) SetPosition(val uint) bool {
+	return cb2b(C.al_set_voice_position(self.handle, C.uint(val)))
+}
+
+// Sets the play status of the voice.
+func (self *Voice) SetPlaying(val bool) bool {
+	return cb2b(C.al_set_voice_playing(self.handle, b2cb(val)))
+}
+
+// Installs the audio extension
+func InstallAudio() bool {
+	return cb2b(C.al_install_audio())
+}
+
+// Uninstalls the audio extension
+func UninstallAudio() {
+	C.al_uninstall_audio()
+}
+
+// Returns true if the audio extension is installed 
+func IsAudioInstalled() bool {
+	return cb2b(C.al_is_audio_installed())
+}
+
+// Returns the version of the audio extension
+func AudioVersion() uint32 {
+	return uint32(C.al_get_allegro_audio_version())
+}
+
+// Gets the amount of available channels in a channel configguration
+func (self ChannelConf) ChannelCount() uint {
+	return uint(C.al_get_channel_count(self.toC()))
+}
+
+// Gets the size of (foe calculating the size of allocating a sample)
+func (self AudioDepth) Size() uint {
+	return uint(C.al_get_audio_depth_size(self.toC()))
+}
+
+// Reserves the given amount of samples and attaches them to the default mixer
+func ReserveSamples(samples int) bool {
+	return cb2b(C.al_reserve_samples(C.int(samples)))
+}
+
+var defaultMixer *Mixer = nil
+
+// Returns a pointer to the default mixer. Has no dispose finaliser set. 
+func DefaultMixer() *Mixer {
+	return wrapMixerRaw(C.al_get_default_mixer())
+}
+
+// Sets the mixer as the default mixer. 
+func (mixer *Mixer) SetDefault() {
+	// this is purely to prevent the GC from collecting this mixer.
+	defaultMixer = mixer
+	C.al_set_default_mixer(mixer.handle)
+}
+
+// Restores the default mixer
+func RestoreDefaultMixer() {
+	// GC reclaim is OK now.
+	defaultMixer = nil
+	C.al_restore_default_mixer()
+}
+
+// Plays a sample on the default mixer if enough samples have been reserved.
+// id returns a sample if that can be used to track the sample.
+func (self *Sample) Play(gain, pan, speed float32, loop PlayMode) (ok bool, id SampleId) {
+	ok = cb2b(C.al_play_sample(self.handle, C.float(gain), C.float(pan), C.float(speed), loop.toC(), (&id).toC()))
+	return ok, id
+}
+
+// Stops playing a sample that was started with sample.Play()  
+func (self *SampleId) Stop() {
+	C.al_stop_sample(self.toC())
+}
+
+// Stops playing all samples on the default mixer
+func StopSamples() {
+	C.al_stop_samples()
+}
+
 /*
-
-ALLEGRO_KCM_AUDIO_FUNC(unsigned int, al_get_voice_frequency, (const ALLEGRO_VOICE *voice));
-ALLEGRO_KCM_AUDIO_FUNC(unsigned int, al_get_voice_position, (const ALLEGRO_VOICE *voice));
-ALLEGRO_KCM_AUDIO_FUNC(ALLEGRO_CHANNEL_CONF, al_get_voice_channels, (const ALLEGRO_VOICE *voice));
-ALLEGRO_KCM_AUDIO_FUNC(ALLEGRO_AUDIO_DEPTH, al_get_voice_depth, (const ALLEGRO_VOICE *voice));
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_get_voice_playing, (const ALLEGRO_VOICE *voice));
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_set_voice_position, (ALLEGRO_VOICE *voice, unsigned int val));
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_set_voice_playing, (ALLEGRO_VOICE *voice, bool val));
-
-
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_install_audio, (void));
-ALLEGRO_KCM_AUDIO_FUNC(void, al_uninstall_audio, (void));
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_is_audio_installed, (void));
-ALLEGRO_KCM_AUDIO_FUNC(uint32_t, al_get_allegro_audio_version, (void));
-
-ALLEGRO_KCM_AUDIO_FUNC(size_t, al_get_channel_count, (ALLEGRO_CHANNEL_CONF conf));
-ALLEGRO_KCM_AUDIO_FUNC(size_t, al_get_audio_depth_size, (ALLEGRO_AUDIO_DEPTH conf));
-
-
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_reserve_samples, (int reserve_samples));
-ALLEGRO_KCM_AUDIO_FUNC(ALLEGRO_MIXER *, al_get_default_mixer, (void));
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_set_default_mixer, (ALLEGRO_MIXER *mixer));
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_restore_default_mixer, (void));
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_play_sample, (ALLEGRO_SAMPLE *data,
-      float32 gain, float32 pan, float32 speed, ALLEGRO_PLAYMODE loop, ALLEGRO_SAMPLE_ID *ret_id));
-ALLEGRO_KCM_AUDIO_FUNC(void, al_stop_sample, (ALLEGRO_SAMPLE_ID *spl_id));
-ALLEGRO_KCM_AUDIO_FUNC(void, al_stop_samples, (void));
-
-
+Todo: 
 ALLEGRO_KCM_AUDIO_FUNC(bool, al_register_sample_loader, (const char *ext,
 	ALLEGRO_SAMPLE *(*loader)(const char *filename)));
 ALLEGRO_KCM_AUDIO_FUNC(bool, al_register_sample_saver, (const char *ext,
@@ -751,7 +854,16 @@ ALLEGRO_KCM_AUDIO_FUNC(bool, al_register_sample_saver_f, (const char *ext,
 ALLEGRO_KCM_AUDIO_FUNC(bool, al_register_audio_stream_loader_f, (const char *ext,
 	ALLEGRO_AUDIO_STREAM *(*stream_loader)(ALLEGRO_FILE *fp,
 	    size_t buffer_count, unsigned int samples)));
+*/
 
+// Loads a sample from a filename and sets up no finalizer 
+func LoadSampleRaw(filename string) *Sample {
+	cstr := cstr(filename)
+	defer cstrFree(cstr)
+	return wrapSampleRaw(C.al_load_sample(cstr))
+}
+
+/*
 ALLEGRO_KCM_AUDIO_FUNC(ALLEGRO_SAMPLE *, al_load_sample, (const char *filename));
 ALLEGRO_KCM_AUDIO_FUNC(bool, al_save_sample, (const char *filename,
 	ALLEGRO_SAMPLE *spl));
