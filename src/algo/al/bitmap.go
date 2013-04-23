@@ -5,16 +5,13 @@ package al
 #include <stdlib.h>
 #include <allegro5/allegro.h>
 #include "helpers.h"
-
-
-
+#include "callbacks.h"
 */
 import "C"
 
 import "runtime"
-import "unsafe"
 
-// #include "_cgo_export.h"  doesn't work
+import "unsafe"
 
 // Type that wraps a Bitmap
 type Bitmap struct {
@@ -114,24 +111,6 @@ func CreateBitmap(w, h int) *Bitmap {
 	return wrapBitmap(C.al_create_bitmap(C.int(w), C.int(h)))
 }
 
-/* TODO:
-AL_FUNC(ALLEGRO_BITMAP*, al_create_custom_bitmap, (int w, int h, bool (*upload)(ALLEGRO_BITMAP *bitmap, void *data), void *data));
-*/
-
-type UploadBitmapC func(bitmap C.ALLEGRO_BITMAP, data unsafe.Pointer) C.bool
-
-type UploadBitmapFunction func(bitmap *Bitmap, data unsafe.Pointer) bool
-
-func (upload *UploadBitmapFunction) toC() UploadBitmapC {
-	//    res := func
-	return nil
-}
-
-func CreateCustomBitmapRaw(w, h int, upload UploadBitmapFunction, data unsafe.Pointer) *Bitmap {
-	fn := (C.function_pointer)(unsafe.Pointer(C.go_upload_bitmap_cb))
-	return wrapBitmapRaw(C.al_create_custom_bitmap(C.int(w), C.int(h), fn, data))
-}
-
 // Puts a pixel to the currently active bitmap
 func PutPixel(x, y int, color Color) {
 	C.al_put_pixel(C.int(x), C.int(y), color.toC())
@@ -225,3 +204,21 @@ func ConvertBitmaps() {
 void qsort(void *base, size_t nmemb, size_t size,
                   int (*compar)(const void *, const void *));
 */
+
+// Creates a custom bitmap by calling the C wrapper 
+func createCustomBitmap(w int, h int, upload CreateCustomBitmapCallback, data interface{}) *C.ALLEGRO_BITMAP {
+	context := unsafe.Pointer(&createCustomBitmapContext{upload, data})
+	var res *C.ALLEGRO_BITMAP = nil
+	res = C.go_create_custom_bitmap(C.int(w), C.int(h), context)
+	return res
+}
+
+// Creates a custom bitmap, raw, with no automatic Destroy set
+func CreateCustomBitmap(w int, h int, upload CreateCustomBitmapCallback, data interface{}) *Bitmap {
+	return wrapBitmap(createCustomBitmap(w, h, upload, data))
+}
+
+// Creates a custom bitmap, raw, with no automatic Destroy set
+func CreateCustomBitmapRaw(w int, h int, upload CreateCustomBitmapCallback, data interface{}) *Bitmap {
+	return wrapBitmapRaw(createCustomBitmap(w, h, upload, data))
+}

@@ -39,6 +39,21 @@ func b2cb(res bool) C.bool {
 	return C.bool(false)
 }
 
+// Memory allocation, use this in stead of malloc for allegro stuff
+func alMalloc(size uint) unsafe.Pointer {
+	return C.al_malloc_with_context(C.size_t(size), 0, nil, nil)
+}
+
+// Memory allocation, use this in stead of calloc for allegro stuff
+func alCalloc(size, n uint) unsafe.Pointer {
+	return C.al_calloc_with_context(C.size_t(size), C.size_t(n), 0, nil, nil)
+}
+
+// Free memory, use this in stead of free for allegro stuff
+func alFree(ptr unsafe.Pointer) {
+	C.al_free_with_context(ptr, 0, nil, nil)
+}
+
 // Converts C.bool to Allegro's C.bool
 func cb2b(res C.bool) bool {
 	if res {
@@ -344,7 +359,12 @@ func getAnyEvenTimestamp(any *C.ALLEGRO_ANY_EVENT) float64 {
 // Event sources that emit events.
 type EventSource C.ALLEGRO_EVENT_SOURCE
 
-// Converts wrapper Event pointer to C Allegro event pointer
+// Wraps an event source pointer but sets no finalizer (not needed anyway) 
+func wrapEventSourceRaw(ptr *C.ALLEGRO_EVENT_SOURCE) *EventSource {
+	return (*EventSource)(ptr)
+}
+
+// Converts wrapper Event source pointer to C Allegro event pointer
 func (self *EventSource) toC() *C.ALLEGRO_EVENT_SOURCE {
 	return (*C.ALLEGRO_EVENT_SOURCE)(self)
 }
@@ -401,13 +421,6 @@ func (self *Event) TIMER_EVENT() *C.ALLEGRO_TIMER_EVENT {
 func (self *Event) USER_EVENT() *C.ALLEGRO_USER_EVENT {
 	return (*C.ALLEGRO_USER_EVENT)(self.toPointer())
 }
-
-/*
-// Converts wrapper Event pointer to C Allegro event
-func (self *Event) _EVENT() *C.ALLEGRO__EVENT {
-	return (*C.ALLEGRO__EVENT)(self.toPointer())
-}
-*/
 
 // Returns the type of the event.
 func (self *Event) Type() int {

@@ -4,8 +4,6 @@ import "testing"
 import "runtime"
 import "flag"
 
-// import "fmt"
-
 // some parameters
 const expected_version = 83952897
 const SCREEN_W = 640
@@ -21,6 +19,12 @@ func TestGetAllegroVersion(t *testing.T) {
 			version, expected_version)
 	}
 }
+
+const CALLBACK_RESULT = 77
+const BMP_W = 11
+const BMP_H = 23
+
+// Test C callbacks, for example create bitmap  
 
 // Test system installation and deinstallation
 func TestSystemInstall(t *testing.T) {
@@ -211,6 +215,42 @@ func TestBasicDisplay(t *testing.T) {
 	FlipDisplay()
 	display.Destroy()
 	Rest(1.0)
+}
+
+func TestCreateCustomBitmap(t *testing.T) {
+	// system must be installled and display opened to test CreateCustomBitmap
+	InstallSystem()
+	defer UninstallSystem()
+	display := makeDisplay()
+	if display == nil {
+		t.Error("Error creating display.")
+	}
+	defer display.Destroy()
+
+	upval := "OK!"
+	called := false
+	MyCallback := func(bmp *Bitmap, data interface{}) bool {
+		t.Logf("Callback called! %s\n", upval)
+		called = true
+		if bmp.Height() != BMP_H {
+			t.Errorf("Height not correct: %d in stead of %d!\n", bmp.Height(), BMP_H)
+		}
+		return false
+	}
+	bmp := CreateCustomBitmap(BMP_W, BMP_H, MyCallback, nil)
+	if bmp == nil {
+		t.Errorf("Callback result should not be nil!")
+	}
+	if bmp.Height() != BMP_H {
+		t.Errorf("Height not correct: %d in stead of %d!\n", bmp.Height(), BMP_H)
+	}
+	if bmp.Width() != BMP_W {
+		t.Errorf("Height not correct: %d in stead of %d!\n", bmp.Height(), BMP_W)
+	}
+
+	if !called {
+		t.Errorf("Failed to call callback!\n")
+	}
 }
 
 // Benchmark basic display function ClearToColor

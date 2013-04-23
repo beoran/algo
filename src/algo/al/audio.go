@@ -12,6 +12,7 @@ package al
 */
 import "C"
 import "runtime"
+import "unsafe"
 
 // User event type emitted when a stream fragment is ready to be
 // refilled with more audio data.
@@ -58,7 +59,6 @@ const (
    * the differences will become more important. (v>>4)+(v&0xF) should yield
    * the total channel count.
 */
-
 type ChannelConf int
 
 const (
@@ -108,17 +108,31 @@ type SampleInstance struct {
 	handle *C.ALLEGRO_SAMPLE_INSTANCE
 }
 
-type AudioStream C.ALLEGRO_AUDIO_STREAM
-type Mixer C.ALLEGRO_MIXER
-type Voice C.ALLEGRO_VOICE
-type AudioRecorder C.ALLEGRO_AUDIO_RECORDER
+type AudioStream struct {
+	handle *C.ALLEGRO_AUDIO_STREAM
+}
+
+type Mixer struct {
+	handle *C.ALLEGRO_MIXER
+}
+
+type Voice struct {
+	handle *C.ALLEGRO_VOICE
+}
+
+type AudioRecorder struct {
+	handle *C.ALLEGRO_AUDIO_RECORDER
+}
 
 func (self *Sample) toC() *C.ALLEGRO_SAMPLE {
 	return (*C.ALLEGRO_SAMPLE)(self.handle)
 }
 
 func (self *Sample) Destroy() {
-	C.al_destroy_sample(self.toC())
+	if self.handle != nil {
+		C.al_destroy_sample(self.toC())
+	}
+	self.handle = nil
 }
 
 func wrapSampleRaw(sample *C.ALLEGRO_SAMPLE) *Sample {
@@ -136,140 +150,559 @@ func wrapSample(sample *C.ALLEGRO_SAMPLE) *Sample {
 	return self
 }
 
+func createSample(data []byte, samples uint, freq uint, depth AudioDepth, chan_conf ChannelConf) *C.ALLEGRO_SAMPLE {
+	// don't let allegro free the data, it's owned by Go.
+	// XXX: copy data here in stead of using the go data???
+	return C.al_create_sample(unsafe.Pointer(&data[0]), C.uint(samples),
+		C.uint(freq), C.ALLEGRO_AUDIO_DEPTH(depth),
+		C.ALLEGRO_CHANNEL_CONF(chan_conf), b2cb(false))
+}
+
+// Creates a Sample with a Destroy finalizer set. BEWARE! data must be big enough fort he params
+// or this will crash spectacularly. Also, make sure that data doesn't get collected by the GC, or 
+// trouble will arise. 
+func CreateSample(data []byte, samples uint, freq uint, depth AudioDepth, chan_conf ChannelConf) *Sample {
+	return wrapSample(createSample(data, samples, freq, depth, chan_conf))
+}
+
+// Returns the frequency of the sample
+func (self *Sample) Frequency() uint {
+	return uint(C.al_get_sample_frequency(self.handle))
+}
+
+// Returns the length of the sample
+func (self *Sample) Length() uint {
+	return uint(C.al_get_sample_length(self.handle))
+}
+
+// Returns the depth of the sample 
+func (self *Sample) Depth() uint {
+	return uint(C.al_get_sample_depth(self.handle))
+}
+
+// returns the amount of channels the sample has
+func (self *Sample) Channels() uint {
+	return uint(C.al_get_sample_channels(self.handle))
+}
+
+// Returns the raw data pointer of the sample data. 
+func (self *Sample) DataRaw() unsafe.Pointer {
+	return (C.al_get_sample_data(self.handle))
+}
+
+// Returns the frequency of the sample instance
+func (self *SampleInstance) Frequency() uint {
+	return uint(C.al_get_sample_instance_frequency(self.handle))
+}
+
+// Returns the length of the sample instance
+func (self *SampleInstance) Length() uint {
+	return uint(C.al_get_sample_instance_length(self.handle))
+}
+
+// Returns the position of the sample instance
+func (self *SampleInstance) Position() uint {
+	return uint(C.al_get_sample_instance_position(self.handle))
+}
+
+// Returns the of the sample instance
+func (self *SampleInstance) Speed() float32 {
+	return float32(C.al_get_sample_instance_speed(self.handle))
+}
+
+// Returns the of the sample instance
+func (self *SampleInstance) Gain() float32 {
+	return float32(C.al_get_sample_instance_gain(self.handle))
+}
+
+// Returns the of the sample instance
+func (self *SampleInstance) Pan() float32 {
+	return float32(C.al_get_sample_instance_pan(self.handle))
+}
+
+// Returns the of the sample instance
+func (self *SampleInstance) Time() float32 {
+	return float32(C.al_get_sample_instance_time(self.handle))
+}
+
+// Returns the depth of the sample instance
+func (self *SampleInstance) Depth() AudioDepth {
+	return AudioDepth(C.al_get_sample_instance_depth(self.handle))
+}
+
+// Returns the channel configuration of the sample instance
+func (self *SampleInstance) Channels() ChannelConf {
+	return ChannelConf(C.al_get_sample_instance_channels(self.handle))
+}
+
+// Returns the play mode of the sample instance
+func (self *SampleInstance) Playmode() PlayMode {
+	return PlayMode(C.al_get_sample_instance_playmode(self.handle))
+}
+
+// Returns wheter or not the sample instance is playing
+func (self *SampleInstance) Playing() bool {
+	return cb2b(C.al_get_sample_instance_playing(self.handle))
+}
+
+// Returns wheter or not the sample instance is attached
+func (self *SampleInstance) Attached() bool {
+	return cb2b(C.al_get_sample_instance_attached(self.handle))
+}
+
+// Sets the position of the sample instance.
+func (self *SampleInstance) SetPosition(val uint) bool {
+	return cb2b(C.al_set_sample_instance_position(self.handle, C.uint(val)))
+}
+
+// Sets the length of the sample instance.
+func (self *SampleInstance) SetLength(val uint) bool {
+	return cb2b(C.al_set_sample_instance_length(self.handle, C.uint(val)))
+}
+
+// Sets the speed of the sample instance.
+func (self *SampleInstance) SetSpeed(val float32) bool {
+	return cb2b(C.al_set_sample_instance_speed(self.handle, C.float(val)))
+}
+
+// Sets the gain of the sample instance.
+func (self *SampleInstance) SetGain(val float32) bool {
+	return cb2b(C.al_set_sample_instance_gain(self.handle, C.float(val)))
+}
+
+// Sets the pan of the sample instance.
+func (self *SampleInstance) SetPan(val float32) bool {
+	return cb2b(C.al_set_sample_instance_pan(self.handle, C.float(val)))
+}
+
+// Sets the play mode of the sample instance.
+func (self *SampleInstance) SetPlaymode(val PlayMode) bool {
+	return cb2b(C.al_set_sample_instance_playmode(self.handle, C.ALLEGRO_PLAYMODE(val)))
+}
+
+// Sets the play status of the sample instance.
+func (self *SampleInstance) SetPlaying(val bool) bool {
+	return cb2b(C.al_set_sample_instance_playing(self.handle, b2cb(val)))
+}
+
+// Detaches the sample instance from it's player
+func (self *SampleInstance) Detach() bool {
+	return cb2b(C.al_detach_sample_instance(self.handle))
+}
+
+// Sets the sample data to use for the sample instance
+func (self *SampleInstance) SetSample(val *Sample) bool {
+	return cb2b(C.al_set_sample(self.handle, val.handle))
+}
+
+// Gets the RAW sample data that was linked to the sample instance
+func (self *SampleInstance) SampleRaw() *Sample {
+	return wrapSampleRaw(C.al_get_sample(self.handle))
+}
+
+// Plays the sample instance 
+func (self *SampleInstance) Play() bool {
+	return cb2b(C.al_play_sample_instance(self.handle))
+}
+
+// Stops the sample instannce playback
+func (self *SampleInstance) Stop() bool {
+	return cb2b(C.al_stop_sample_instance(self.handle))
+}
+
+func (self *AudioStream) toC() *C.ALLEGRO_AUDIO_STREAM {
+	return (*C.ALLEGRO_AUDIO_STREAM)(self.handle)
+}
+
+// Destroys the audio stream.
+func (self *AudioStream) Destroy() {
+	if self.handle != nil {
+		C.al_destroy_audio_stream(self.toC())
+	}
+	self.handle = nil
+}
+
+func wrapAudioStreamRaw(data *C.ALLEGRO_AUDIO_STREAM) *AudioStream {
+	if data == nil {
+		return nil
+	}
+	return &AudioStream{data}
+}
+
+func wrapAudioStream(data *C.ALLEGRO_AUDIO_STREAM) *AudioStream {
+	self := wrapAudioStreamRaw(data)
+	if self != nil {
+		runtime.SetFinalizer(self, func(me *AudioStream) { me.Destroy() })
+	}
+	return self
+}
+
+// Creates an audio stream, with finalizer installed.
+func CreateAudioStream(bufc, samples, freq uint, depth AudioDepth, chan_conf ChannelConf) *AudioStream {
+	return wrapAudioStream(C.al_create_audio_stream(C.size_t(bufc), C.uint(samples),
+		C.uint(freq), C.ALLEGRO_AUDIO_DEPTH(depth), C.ALLEGRO_CHANNEL_CONF(chan_conf)))
+}
+
+// Creates an audio stream, with NO finalizer installed.
+func CreateAudioStreamRaw(bufc, samples, freq uint, depth AudioDepth, chan_conf ChannelConf) *AudioStream {
+	return wrapAudioStreamRaw(C.al_create_audio_stream(C.size_t(bufc), C.uint(samples),
+		C.uint(freq), C.ALLEGRO_AUDIO_DEPTH(depth), C.ALLEGRO_CHANNEL_CONF(chan_conf)))
+}
+
+// Drains all data from an audio stream
+func (self *AudioStream) Drain() {
+	C.al_drain_audio_stream(self.handle)
+}
+
+// Returns the frequency of the audio stream
+func (self *AudioStream) Frequency() uint {
+	return uint(C.al_get_audio_stream_frequency(self.handle))
+}
+
+// Returns the length of the audio stream
+func (self *AudioStream) Length() uint {
+	return uint(C.al_get_audio_stream_length(self.handle))
+}
+
+// Returns the speed of the audio stream
+func (self *AudioStream) Speed() float32 {
+	return float32(C.al_get_audio_stream_speed(self.handle))
+}
+
+// Returns the amount of fragments of the audio stream
+func (self *AudioStream) Fragments() float32 {
+	return float32(C.al_get_audio_stream_fragments(self.handle))
+}
+
+// Returns the amount of available fragments of the audio stream
+func (self *AudioStream) AvailableFragments() float32 {
+	return float32(C.al_get_available_audio_stream_fragments(self.handle))
+}
+
+// Returns the gain of the audio stream
+func (self *AudioStream) Gain() float32 {
+	return float32(C.al_get_audio_stream_gain(self.handle))
+}
+
+// Returns the pan of the audio stream
+func (self *AudioStream) Pan() float32 {
+	return float32(C.al_get_audio_stream_pan(self.handle))
+}
+
+// Returns the depth of the audio stream
+func (self *AudioStream) Depth() AudioDepth {
+	return AudioDepth(C.al_get_audio_stream_depth(self.handle))
+}
+
+// Returns the channel configuration of the audio stream
+func (self *AudioStream) Channels() ChannelConf {
+	return ChannelConf(C.al_get_audio_stream_channels(self.handle))
+}
+
+// Returns the play mode of the audio stream
+func (self *AudioStream) Playmode() PlayMode {
+	return PlayMode(C.al_get_audio_stream_playmode(self.handle))
+}
+
+// Returns wheter or not the audio stream is playing
+func (self *AudioStream) Playing() bool {
+	return cb2b(C.al_get_audio_stream_playing(self.handle))
+}
+
+// Returns wheter or not the audio stream is attached
+func (self *AudioStream) Attached() bool {
+	return cb2b(C.al_get_audio_stream_attached(self.handle))
+}
+
+// Returns an unsafe pointer to the audio stream's fragment
+func (self *AudioStream) Fragment() unsafe.Pointer {
+	return C.al_get_audio_stream_fragment(self.handle)
+}
+
+// Sets the speed of the audio stream.
+func (self *AudioStream) SetSpeed(val float32) bool {
+	return cb2b(C.al_set_audio_stream_speed(self.handle, C.float(val)))
+}
+
+// Sets the gain of the audio stream.
+func (self *AudioStream) SetGain(val float32) bool {
+	return cb2b(C.al_set_audio_stream_gain(self.handle, C.float(val)))
+}
+
+// Sets the pan of the audio stream.
+func (self *AudioStream) SetPan(val float32) bool {
+	return cb2b(C.al_set_audio_stream_pan(self.handle, C.float(val)))
+}
+
+// Sets the play mode of the audio stream.
+func (self *AudioStream) SetPlaymode(val PlayMode) bool {
+	return cb2b(C.al_set_audio_stream_playmode(self.handle, C.ALLEGRO_PLAYMODE(val)))
+}
+
+// Sets the play status of the audio stream.
+func (self *AudioStream) SetPlaying(val bool) bool {
+	return cb2b(C.al_set_audio_stream_playing(self.handle, b2cb(val)))
+}
+
+// Detaches the audio stream from it's player
+func (self *AudioStream) Detach() bool {
+	return cb2b(C.al_detach_sample_instance(self.handle))
+}
+
+// Sets an unsafe pointer as the the audio stream's fragment
+func (self *AudioStream) SetFragment(ptr unsafe.Pointer) bool {
+	return cb2b(C.al_set_audio_stream_fragment(self.handle, ptr))
+}
+
+// Rewinds the audio stream
+func (self *AudioStream) Rewind() bool {
+	return cb2b(C.al_rewind_audio_stream(self.handle))
+}
+
+// Seeks to a position in the audio stream, expressed in seconds.
+func (self *AudioStream) SeekSeconds(secs float64) bool {
+	return cb2b(C.al_seek_audio_stream_secs(self.handle, C.double(secs)))
+}
+
+// Gets the position in the audio stream, expressed in seconds.
+func (self *AudioStream) PositionSeconds() (secs float64) {
+	return float64(C.al_get_audio_stream_position_secs(self.handle))
+}
+
+// Gets the length of the audio stream, expressed in seconds.
+func (self *AudioStream) LengthSeconds() (secs float64) {
+	return float64(C.al_get_audio_stream_length_secs(self.handle))
+}
+
+// Sets up a loop in the audio stream, expressed in seconds.
+func (self *AudioStream) LoopSeconds(start, end float64) bool {
+	return cb2b(C.al_set_audio_stream_loop_secs(self.handle, C.double(start), C.double(end)))
+}
+
+// Returns the event source to use to listen to events on the audio stream.
+func (self *AudioStream) Eventsource() *EventSource {
+	return wrapEventSourceRaw(C.al_get_audio_stream_event_source(self.handle))
+}
+
+// Converts a mixer to it's underlying C pointer
+func (self *Mixer) toC() *C.ALLEGRO_MIXER {
+	return (*C.ALLEGRO_MIXER)(self.handle)
+}
+
+// Destroys the mixer.
+func (self *Mixer) Destroy() {
+	if self.handle != nil {
+		C.al_destroy_mixer(self.toC())
+	}
+	self.handle = nil
+}
+
+// Wraps a C mixer into a go mixer
+func wrapMixerRaw(data *C.ALLEGRO_MIXER) *Mixer {
+	if data == nil {
+		return nil
+	}
+	return &Mixer{data}
+}
+
+// Wraps a C mixer into a go mixer and sets up a finalizer that calls Destroy()
+func wrapMixer(data *C.ALLEGRO_MIXER) *Mixer {
+	self := wrapMixerRaw(data)
+	if self != nil {
+		runtime.SetFinalizer(self, func(me *Mixer) { me.Destroy() })
+	}
+	return self
+}
+
+func createMixer(freq uint, depth AudioDepth, chan_conf ChannelConf) *C.ALLEGRO_MIXER {
+	return C.al_create_mixer(C.uint(freq), C.ALLEGRO_AUDIO_DEPTH(depth), C.ALLEGRO_CHANNEL_CONF(chan_conf))
+}
+
+// Creates a new mixer with no finaliser attached to it.
+func CreateMixerRaw(freq uint, depth AudioDepth, chan_conf ChannelConf) *Mixer {
+	return wrapMixerRaw(createMixer(freq, depth, chan_conf))
+}
+
+// Creates a new mixer with a finaliser that will call Destroy attached to it.
+func CreateMixer(freq uint, depth AudioDepth, chan_conf ChannelConf) *Mixer {
+	return wrapMixer(createMixer(freq, depth, chan_conf))
+}
+
+// Attaches a sample instance to the given mixer. 
+func (mixer *Mixer) AttachSampleInstance(stream *SampleInstance) bool {
+	return cb2b(C.al_attach_sample_instance_to_mixer(stream.handle, mixer.handle))
+}
+
+// Attaches the sample instance to the given mixer. 
+func (stream *SampleInstance) Attach(mixer *Mixer) bool {
+	return cb2b(C.al_attach_sample_instance_to_mixer(stream.handle, mixer.handle))
+}
+
+// Attaches an audio stream  to the given mixer. 
+func (mixer *Mixer) AttachAudioStream(stream *AudioStream) bool {
+	return cb2b(C.al_attach_audio_stream_to_mixer(stream.handle, mixer.handle))
+}
+
+// Attaches the audio stream to the given mixer. 
+func (stream *AudioStream) Attach(mixer *Mixer) bool {
+	return cb2b(C.al_attach_audio_stream_to_mixer(stream.handle, mixer.handle))
+}
+
+// Attaches a mixer to the given mixer. 
+func (mixer *Mixer) AttachMixer(stream *Mixer) bool {
+	return cb2b(C.al_attach_mixer_to_mixer(stream.handle, mixer.handle))
+}
+
+// Attaches the given mixer to the latter mixer. 
+func (stream *Mixer) Attach(mixer *Mixer) bool {
+	return cb2b(C.al_attach_mixer_to_mixer(stream.handle, mixer.handle))
+}
+
 /*
-
-ALLEGRO_KCM_AUDIO_FUNC(ALLEGRO_SAMPLE *, al_create_sample, (void *buf,
-      unsigned int samples, unsigned int freq, AudioDepth depth,
-      ALLEGRO_CHANNEL_CONF chan_conf, bool free_buf));
-ALLEGRO_KCM_AUDIO_FUNC(void, al_destroy_sample, (ALLEGRO_SAMPLE *spl));
-
-
-
-ALLEGRO_KCM_AUDIO_FUNC(ALLEGRO_SAMPLE_INSTANCE*, al_create_sample_instance, (
-      ALLEGRO_SAMPLE *data));
-ALLEGRO_KCM_AUDIO_FUNC(void, al_destroy_sample_instance, (
-      ALLEGRO_SAMPLE_INSTANCE *spl));
-
-ALLEGRO_KCM_AUDIO_FUNC(unsigned int, al_get_sample_frequency, (const ALLEGRO_SAMPLE *spl));
-ALLEGRO_KCM_AUDIO_FUNC(unsigned int, al_get_sample_length, (const ALLEGRO_SAMPLE *spl));
-ALLEGRO_KCM_AUDIO_FUNC(ALLEGRO_AUDIO_DEPTH, al_get_sample_depth, (const ALLEGRO_SAMPLE *spl));
-ALLEGRO_KCM_AUDIO_FUNC(ALLEGRO_CHANNEL_CONF, al_get_sample_channels, (const ALLEGRO_SAMPLE *spl));
-ALLEGRO_KCM_AUDIO_FUNC(void *, al_get_sample_data, (const ALLEGRO_SAMPLE *spl));
-
-ALLEGRO_KCM_AUDIO_FUNC(unsigned int, al_get_sample_instance_frequency, (const ALLEGRO_SAMPLE_INSTANCE *spl));
-ALLEGRO_KCM_AUDIO_FUNC(unsigned int, al_get_sample_instance_length, (const ALLEGRO_SAMPLE_INSTANCE *spl));
-ALLEGRO_KCM_AUDIO_FUNC(unsigned int, al_get_sample_instance_position, (const ALLEGRO_SAMPLE_INSTANCE *spl));
-
-ALLEGRO_KCM_AUDIO_FUNC(float, al_get_sample_instance_speed, (const ALLEGRO_SAMPLE_INSTANCE *spl));
-ALLEGRO_KCM_AUDIO_FUNC(float, al_get_sample_instance_gain, (const ALLEGRO_SAMPLE_INSTANCE *spl));
-ALLEGRO_KCM_AUDIO_FUNC(float, al_get_sample_instance_pan, (const ALLEGRO_SAMPLE_INSTANCE *spl));
-ALLEGRO_KCM_AUDIO_FUNC(float, al_get_sample_instance_time, (const ALLEGRO_SAMPLE_INSTANCE *spl));
-
-ALLEGRO_KCM_AUDIO_FUNC(ALLEGRO_AUDIO_DEPTH, al_get_sample_instance_depth, (const ALLEGRO_SAMPLE_INSTANCE *spl));
-ALLEGRO_KCM_AUDIO_FUNC(ALLEGRO_CHANNEL_CONF, al_get_sample_instance_channels, (const ALLEGRO_SAMPLE_INSTANCE *spl));
-ALLEGRO_KCM_AUDIO_FUNC(ALLEGRO_PLAYMODE, al_get_sample_instance_playmode, (const ALLEGRO_SAMPLE_INSTANCE *spl));
-
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_get_sample_instance_playing, (const ALLEGRO_SAMPLE_INSTANCE *spl));
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_get_sample_instance_attached, (const ALLEGRO_SAMPLE_INSTANCE *spl));
-
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_set_sample_instance_position, (ALLEGRO_SAMPLE_INSTANCE *spl, unsigned int val));
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_set_sample_instance_length, (ALLEGRO_SAMPLE_INSTANCE *spl, unsigned int val));
-
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_set_sample_instance_speed, (ALLEGRO_SAMPLE_INSTANCE *spl, float val));
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_set_sample_instance_gain, (ALLEGRO_SAMPLE_INSTANCE *spl, float val));
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_set_sample_instance_pan, (ALLEGRO_SAMPLE_INSTANCE *spl, float val));
-
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_set_sample_instance_playmode, (ALLEGRO_SAMPLE_INSTANCE *spl, ALLEGRO_PLAYMODE val));
-
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_set_sample_instance_playing, (ALLEGRO_SAMPLE_INSTANCE *spl, bool val));
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_detach_sample_instance, (ALLEGRO_SAMPLE_INSTANCE *spl));
-
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_set_sample, (ALLEGRO_SAMPLE_INSTANCE *spl, ALLEGRO_SAMPLE *data));
-ALLEGRO_KCM_AUDIO_FUNC(ALLEGRO_SAMPLE *, al_get_sample, (ALLEGRO_SAMPLE_INSTANCE *spl));
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_play_sample_instance, (ALLEGRO_SAMPLE_INSTANCE *spl));
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_stop_sample_instance, (ALLEGRO_SAMPLE_INSTANCE *spl));
-
-
-
-ALLEGRO_KCM_AUDIO_FUNC(ALLEGRO_AUDIO_STREAM*, al_create_audio_stream, (size_t buffer_count,
-      unsigned int samples, unsigned int freq,
-      AudioDepth depth, ALLEGRO_CHANNEL_CONF chan_conf));
-ALLEGRO_KCM_AUDIO_FUNC(void, al_destroy_audio_stream, (ALLEGRO_AUDIO_STREAM *stream));
-ALLEGRO_KCM_AUDIO_FUNC(void, al_drain_audio_stream, (ALLEGRO_AUDIO_STREAM *stream));
-
-ALLEGRO_KCM_AUDIO_FUNC(unsigned int, al_get_audio_stream_frequency, (const ALLEGRO_AUDIO_STREAM *stream));
-ALLEGRO_KCM_AUDIO_FUNC(unsigned int, al_get_audio_stream_length, (const ALLEGRO_AUDIO_STREAM *stream));
-ALLEGRO_KCM_AUDIO_FUNC(unsigned int, al_get_audio_stream_fragments, (const ALLEGRO_AUDIO_STREAM *stream));
-ALLEGRO_KCM_AUDIO_FUNC(unsigned int, al_get_available_audio_stream_fragments, (const ALLEGRO_AUDIO_STREAM *stream));
-
-ALLEGRO_KCM_AUDIO_FUNC(float, al_get_audio_stream_speed, (const ALLEGRO_AUDIO_STREAM *stream));
-ALLEGRO_KCM_AUDIO_FUNC(float, al_get_audio_stream_gain, (const ALLEGRO_AUDIO_STREAM *stream));
-ALLEGRO_KCM_AUDIO_FUNC(float, al_get_audio_stream_pan, (const ALLEGRO_AUDIO_STREAM *stream));
-
-ALLEGRO_KCM_AUDIO_FUNC(ALLEGRO_CHANNEL_CONF, al_get_audio_stream_channels, (const ALLEGRO_AUDIO_STREAM *stream));
-ALLEGRO_KCM_AUDIO_FUNC(ALLEGRO_AUDIO_DEPTH, al_get_audio_stream_depth, (const ALLEGRO_AUDIO_STREAM *stream));
-ALLEGRO_KCM_AUDIO_FUNC(ALLEGRO_PLAYMODE, al_get_audio_stream_playmode, (const ALLEGRO_AUDIO_STREAM *stream));
-
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_get_audio_stream_playing, (const ALLEGRO_AUDIO_STREAM *spl));
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_get_audio_stream_attached, (const ALLEGRO_AUDIO_STREAM *spl));
-
-ALLEGRO_KCM_AUDIO_FUNC(void *, al_get_audio_stream_fragment, (const ALLEGRO_AUDIO_STREAM *stream));
-
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_set_audio_stream_speed, (ALLEGRO_AUDIO_STREAM *stream, float val));
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_set_audio_stream_gain, (ALLEGRO_AUDIO_STREAM *stream, float val));
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_set_audio_stream_pan, (ALLEGRO_AUDIO_STREAM *stream, float val));
-
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_set_audio_stream_playmode, (ALLEGRO_AUDIO_STREAM *stream, ALLEGRO_PLAYMODE val));
-
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_set_audio_stream_playing, (ALLEGRO_AUDIO_STREAM *stream, bool val));
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_detach_audio_stream, (ALLEGRO_AUDIO_STREAM *stream));
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_set_audio_stream_fragment, (ALLEGRO_AUDIO_STREAM *stream, void *val));
-
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_rewind_audio_stream, (ALLEGRO_AUDIO_STREAM *stream));
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_seek_audio_stream_secs, (ALLEGRO_AUDIO_STREAM *stream, double time));
-ALLEGRO_KCM_AUDIO_FUNC(double, al_get_audio_stream_position_secs, (ALLEGRO_AUDIO_STREAM *stream));
-ALLEGRO_KCM_AUDIO_FUNC(double, al_get_audio_stream_length_secs, (ALLEGRO_AUDIO_STREAM *stream));
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_set_audio_stream_loop_secs, (ALLEGRO_AUDIO_STREAM *stream, double start, double end));
-
-ALLEGRO_KCM_AUDIO_FUNC(ALLEGRO_EVENT_SOURCE *, al_get_audio_stream_event_source, (ALLEGRO_AUDIO_STREAM *stream));
-
-
-ALLEGRO_KCM_AUDIO_FUNC(ALLEGRO_MIXER*, al_create_mixer, (unsigned int freq,
-      AudioDepth depth, ALLEGRO_CHANNEL_CONF chan_conf));
-ALLEGRO_KCM_AUDIO_FUNC(void, al_destroy_mixer, (ALLEGRO_MIXER *mixer));
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_attach_sample_instance_to_mixer, (
-   ALLEGRO_SAMPLE_INSTANCE *stream, ALLEGRO_MIXER *mixer));
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_attach_audio_stream_to_mixer, (ALLEGRO_AUDIO_STREAM *stream,
-   ALLEGRO_MIXER *mixer));
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_attach_mixer_to_mixer, (ALLEGRO_MIXER *stream,
-   ALLEGRO_MIXER *mixer));
+TODO:
 ALLEGRO_KCM_AUDIO_FUNC(bool, al_set_mixer_postprocess_callback, (
       ALLEGRO_MIXER *mixer,
       void (*cb)(void *buf, unsigned int samples, void *data),
       void *data));
+*/
 
-ALLEGRO_KCM_AUDIO_FUNC(unsigned int, al_get_mixer_frequency, (const ALLEGRO_MIXER *mixer));
-ALLEGRO_KCM_AUDIO_FUNC(ALLEGRO_CHANNEL_CONF, al_get_mixer_channels, (const ALLEGRO_MIXER *mixer));
-ALLEGRO_KCM_AUDIO_FUNC(ALLEGRO_AUDIO_DEPTH, al_get_mixer_depth, (const ALLEGRO_MIXER *mixer));
-ALLEGRO_KCM_AUDIO_FUNC(ALLEGRO_MIXER_QUALITY, al_get_mixer_quality, (const ALLEGRO_MIXER *mixer));
-ALLEGRO_KCM_AUDIO_FUNC(float, al_get_mixer_gain, (const ALLEGRO_MIXER *mixer));
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_get_mixer_playing, (const ALLEGRO_MIXER *mixer));
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_get_mixer_attached, (const ALLEGRO_MIXER *mixer));
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_set_mixer_frequency, (ALLEGRO_MIXER *mixer, unsigned int val));
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_set_mixer_quality, (ALLEGRO_MIXER *mixer, ALLEGRO_MIXER_QUALITY val));
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_set_mixer_gain, (ALLEGRO_MIXER *mixer, float gain));
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_set_mixer_playing, (ALLEGRO_MIXER *mixer, bool val));
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_detach_mixer, (ALLEGRO_MIXER *mixer));
+// Returns the frequency of the mixer
+func (self *Mixer) Frequency() uint {
+	return uint(C.al_get_mixer_frequency(self.handle))
+}
 
+// Returns the gain of the mixer
+func (self *Mixer) Gain() float32 {
+	return float32(C.al_get_mixer_gain(self.handle))
+}
 
-ALLEGRO_KCM_AUDIO_FUNC(ALLEGRO_VOICE*, al_create_voice, (unsigned int freq,
-      AudioDepth depth,
-      ALLEGRO_CHANNEL_CONF chan_conf));
-ALLEGRO_KCM_AUDIO_FUNC(void, al_destroy_voice, (ALLEGRO_VOICE *voice));
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_attach_sample_instance_to_voice, (
-   ALLEGRO_SAMPLE_INSTANCE *stream, ALLEGRO_VOICE *voice));
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_attach_audio_stream_to_voice, (
-   ALLEGRO_AUDIO_STREAM *stream, ALLEGRO_VOICE *voice ));
+// Returns the depth of the mixer
+func (self *Mixer) Depth() AudioDepth {
+	return AudioDepth(C.al_get_mixer_depth(self.handle))
+}
+
+// Returns the channel configuration of the mixer
+func (self *Mixer) Channels() ChannelConf {
+	return ChannelConf(C.al_get_mixer_channels(self.handle))
+}
+
+// Returns the quality of the mixer
+func (self *Mixer) Quality() MixerQuality {
+	return MixerQuality(C.al_get_mixer_quality(self.handle))
+}
+
+// Returns wheter or not the mixer is playing
+func (self *Mixer) Playing() bool {
+	return cb2b(C.al_get_mixer_playing(self.handle))
+}
+
+// Returns wheter or not the mixer is attached
+func (self *Mixer) Attached() bool {
+	return cb2b(C.al_get_mixer_attached(self.handle))
+}
+
+// Sets the frequency of the mixer.
+func (self *Mixer) SetFrequency(val uint) bool {
+	return cb2b(C.al_set_mixer_frequency(self.handle, C.uint(val)))
+}
+
+// Sets the quality of the mixer.
+func (self *Mixer) SetQuality(val MixerQuality) bool {
+	return cb2b(C.al_set_mixer_quality(self.handle, C.ALLEGRO_MIXER_QUALITY(val)))
+}
+
+// Sets the gain of the mixer.
+func (self *Mixer) SetGain(val float32) bool {
+	return cb2b(C.al_set_mixer_gain(self.handle, C.float(val)))
+}
+
+// Sets the play status of the mixer.
+func (self *Mixer) SetPlaying(val bool) bool {
+	return cb2b(C.al_set_mixer_playing(self.handle, b2cb(val)))
+}
+
+// Detaches the mixer from it's player
+func (self *Mixer) Detach() bool {
+	return cb2b(C.al_detach_mixer(self.handle))
+}
+
+// Converts a voice to it's underlying C pointer
+func (self *Voice) toC() *C.ALLEGRO_VOICE {
+	return (*C.ALLEGRO_VOICE)(self.handle)
+}
+
+// Destroys the voice.
+func (self *Voice) Destroy() {
+	if self.handle != nil {
+		C.al_destroy_voice(self.toC())
+	}
+	self.handle = nil
+}
+
+// Wraps a C voice into a go mixer
+func wrapVoiceRaw(data *C.ALLEGRO_VOICE) *Voice {
+	if data == nil {
+		return nil
+	}
+	return &Voice{data}
+}
+
+// Wraps a C voice into a go mixer and sets up a finalizer that calls Destroy()
+func wrapVoice(data *C.ALLEGRO_VOICE) *Voice {
+	self := wrapVoiceRaw(data)
+	if self != nil {
+		runtime.SetFinalizer(self, func(me *Voice) { me.Destroy() })
+	}
+	return self
+}
+
+// creates a C voice 
+func createVoice(freq uint, depth AudioDepth, chan_conf ChannelConf) *C.ALLEGRO_VOICE {
+	return C.al_create_voice(C.uint(freq), C.ALLEGRO_AUDIO_DEPTH(depth), C.ALLEGRO_CHANNEL_CONF(chan_conf))
+}
+
+// Creates a voice
+func CreateVoiceRaw(freq uint, depth AudioDepth, chan_conf ChannelConf) *Voice {
+	return wrapVoiceRaw(createVoice(freq, depth, chan_conf))
+}
+
+// Creates a voice and setsup a finalizer on it that calls Destroy
+func CreateVoice(freq uint, depth AudioDepth, chan_conf ChannelConf) *Voice {
+	return wrapVoice(createVoice(freq, depth, chan_conf))
+}
+
+// Attaches a sample instance to the given voice. 
+func (voice *Voice) AttachSampleInstance(stream *SampleInstance) bool {
+	return cb2b(C.al_attach_sample_instance_to_voice(stream.handle, voice.handle))
+}
+
+// Attaches the sample instance to the given voice. 
+func (stream *SampleInstance) AttachToVoice(voice *Voice) bool {
+	return cb2b(C.al_attach_sample_instance_to_voice(stream.handle, voice.handle))
+}
+
+// Attaches an audio stream  to the given voice. 
+func (voice *Voice) AttachAudioStream(stream *AudioStream) bool {
+	return cb2b(C.al_attach_audio_stream_to_voice(stream.handle, voice.handle))
+}
+
+// Attaches the audio stream to the given voice. 
+func (stream *AudioStream) AttachToVoice(voice *Voice) bool {
+	return cb2b(C.al_attach_audio_stream_to_voice(stream.handle, voice.handle))
+}
+
+// Attaches the given mixer to the voice
+func (mixer *Mixer) AttachToVoice(voice *Voice) bool {
+	return cb2b(C.al_attach_mixer_to_voice(mixer.handle, voice.handle))
+}
+
+// Attaches the given voice to the mixer
+func (voice *Voice) AttachMixer(mixer *Mixer) bool {
+	return cb2b(C.al_attach_mixer_to_voice(mixer.handle, voice.handle))
+}
+
+/*
+
 ALLEGRO_KCM_AUDIO_FUNC(bool, al_attach_mixer_to_voice, (ALLEGRO_MIXER *mixer,
    ALLEGRO_VOICE *voice));
 ALLEGRO_KCM_AUDIO_FUNC(void, al_detach_voice, (ALLEGRO_VOICE *voice));
@@ -297,7 +730,7 @@ ALLEGRO_KCM_AUDIO_FUNC(ALLEGRO_MIXER *, al_get_default_mixer, (void));
 ALLEGRO_KCM_AUDIO_FUNC(bool, al_set_default_mixer, (ALLEGRO_MIXER *mixer));
 ALLEGRO_KCM_AUDIO_FUNC(bool, al_restore_default_mixer, (void));
 ALLEGRO_KCM_AUDIO_FUNC(bool, al_play_sample, (ALLEGRO_SAMPLE *data,
-      float gain, float pan, float speed, ALLEGRO_PLAYMODE loop, ALLEGRO_SAMPLE_ID *ret_id));
+      float32 gain, float32 pan, float32 speed, ALLEGRO_PLAYMODE loop, ALLEGRO_SAMPLE_ID *ret_id));
 ALLEGRO_KCM_AUDIO_FUNC(void, al_stop_sample, (ALLEGRO_SAMPLE_ID *spl_id));
 ALLEGRO_KCM_AUDIO_FUNC(void, al_stop_samples, (void));
 
