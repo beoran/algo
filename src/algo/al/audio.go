@@ -856,19 +856,70 @@ ALLEGRO_KCM_AUDIO_FUNC(bool, al_register_audio_stream_loader_f, (const char *ext
 	    size_t buffer_count, unsigned int samples)));
 */
 
-// Loads a sample from a filename and sets up no finalizer 
-func LoadSampleRaw(filename string) *Sample {
+// Loads a C sample from a filename
+func loadSample(filename string) *C.ALLEGRO_SAMPLE {
 	cstr := cstr(filename)
 	defer cstrFree(cstr)
-	return wrapSampleRaw(C.al_load_sample(cstr))
+	return C.al_load_sample(cstr)
+}
+
+// Loads a sample from a filename and sets up no finalizer 
+func LoadSampleRaw(filename string) *Sample {
+	return wrapSampleRaw(loadSample(filename))
+}
+
+// Loads a sample from a filename and sets up a finalizer 
+func LoadSample(filename string) *Sample {
+	return wrapSample(loadSample(filename))
+}
+
+// Saves a sample to a given filename
+func (self *Sample) Save(filename string) bool {
+	cstr := cstr(filename)
+	defer cstrFree(cstr)
+	return cb2b(C.al_save_sample(cstr, self.handle))
+}
+
+// Loads a C audio stream sample from a filename
+func loadAudioStream(filename string, buffer_count, samples uint) *C.ALLEGRO_AUDIO_STREAM {
+	cstr := cstr(filename)
+	defer cstrFree(cstr)
+	return C.al_load_audio_stream(cstr, C.size_t(buffer_count), C.uint(samples))
+}
+
+// Loads a sample from a filename and sets up no finalizer 
+func LoadAudioStreamRaw(filename string, buffer_count, samples uint) *AudioStream {
+	return wrapAudioStreamRaw(loadAudioStream(filename, buffer_count, samples))
+}
+
+// Loads a sample from a filename and sets up a finalizer 
+func LoadAudioStream(filename string, buffer_count, samples uint) *AudioStream {
+	return wrapAudioStream(loadAudioStream(filename, buffer_count, samples))
+}
+
+// Allegro's own file for cross platform and physfs reasons.
+type File struct {
+	handle *C.ALLEGRO_FILE
+}
+
+// Closes the Allegro file
+func (self *File) Close() {
+	if self.handle != nil {
+		C.al_fclose(self.handle)
+	}
+	self.handle = nil
+}
+
+// Opens an Allegro File
+func openFile(filename, mode string) *C.ALLEGRO_FILE {
+	cfilename := cstr(filename)
+	defer cstrFree(cfilename)
+	cmode := cstr(mode)
+	defer cstrFree(cmode)
+	return C.al_fopen(cfilename, cmode)
 }
 
 /*
-ALLEGRO_KCM_AUDIO_FUNC(ALLEGRO_SAMPLE *, al_load_sample, (const char *filename));
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_save_sample, (const char *filename,
-	ALLEGRO_SAMPLE *spl));
-ALLEGRO_KCM_AUDIO_FUNC(ALLEGRO_AUDIO_STREAM *, al_load_audio_stream, (const char *filename,
-	size_t buffer_count, unsigned int samples));
 
 ALLEGRO_KCM_AUDIO_FUNC(ALLEGRO_SAMPLE *, al_load_sample_f, (ALLEGRO_FILE* fp, const char *ident));
 ALLEGRO_KCM_AUDIO_FUNC(bool, al_save_sample_f, (ALLEGRO_FILE* fp, const char *ident,
