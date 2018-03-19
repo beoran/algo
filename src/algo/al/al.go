@@ -794,7 +794,7 @@ func wrapTimer(handle *C.ALLEGRO_TIMER) *Timer {
 	return result
 }
 
-// Creates a timer wih the given tick speed.
+// Creates a timer with the given tick speed.
 func CreateTimer(speed_secs float64) *Timer {
 	return wrapTimer(C.al_create_timer(C.double(speed_secs)))
 }

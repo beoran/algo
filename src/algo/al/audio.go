@@ -1,4 +1,4 @@
-// audio
+// Audio extension
 package al
 
 /*
@@ -27,16 +27,7 @@ func (self *Event) AUDIO_RECORDER_EVENT() *C.ALLEGRO_AUDIO_RECORDER_EVENT {
 	return (*C.ALLEGRO_AUDIO_RECORDER_EVENT)(self.toPointer())
 }
 
-/*
-TODO?
-struct ALLEGRO_AUDIO_RECORDER_EVENT
-{
-   _AL_EVENT_HEADER(struct ALLEGRO_AUDIO_RECORDER)
-   struct ALLEGRO_USER_EVENT_DESCRIPTOR *__internal__descr;
-   void *buffer;
-   unsigned int samples;
-};
-*/
+type AudioRecorderEvent C.ALLEGRO_AUDIO_RECORDER_EVENT
 
 type AudioDepth int
 
@@ -152,11 +143,20 @@ func (self *Sample) toC() *C.ALLEGRO_SAMPLE {
 	return (*C.ALLEGRO_SAMPLE)(self.handle)
 }
 
+// Destroys the sample.
 func (self *Sample) Destroy() {
 	if self.handle != nil {
 		C.al_destroy_sample(self.toC())
 	}
 	self.handle = nil
+}
+
+// Sets up a finalizer for this Sample that calls Destroy() and return self
+func (self *Sample) SetDestroyFinalizer() *Sample {
+	if self != nil {
+		runtime.SetFinalizer(self, func(me *Sample) { me.Destroy() })
+	}
+	return self
 }
 
 func wrapSampleRaw(sample *C.ALLEGRO_SAMPLE) *Sample {
@@ -345,6 +345,14 @@ func (self *AudioStream) Destroy() {
 	self.handle = nil
 }
 
+// Sets up a finalizer for this AudioStream that calls Destroy() and return self
+func (self *AudioStream) SetDestroyFinalizer() *AudioStream {
+	if self != nil {
+		runtime.SetFinalizer(self, func(me *AudioStream) { me.Destroy() })
+	}
+	return self
+}
+
 func wrapAudioStreamRaw(data *C.ALLEGRO_AUDIO_STREAM) *AudioStream {
 	if data == nil {
 		return nil
@@ -354,10 +362,7 @@ func wrapAudioStreamRaw(data *C.ALLEGRO_AUDIO_STREAM) *AudioStream {
 
 func wrapAudioStream(data *C.ALLEGRO_AUDIO_STREAM) *AudioStream {
 	self := wrapAudioStreamRaw(data)
-	if self != nil {
-		runtime.SetFinalizer(self, func(me *AudioStream) { me.Destroy() })
-	}
-	return self
+	return self.SetDestroyFinalizer()
 }
 
 // Creates an audio stream, with finalizer installed.
@@ -520,6 +525,14 @@ func (self *Mixer) Destroy() {
 	self.handle = nil
 }
 
+// Sets up a finalizer for this Mixer that calls Destroy() and return self
+func (self *Mixer) SetDestroyFinalizer() *Mixer {
+	if self != nil {
+		runtime.SetFinalizer(self, func(me *Mixer) { me.Destroy() })
+	}
+	return self
+}
+
 // Wraps a C mixer into a go mixer
 func wrapMixerRaw(data *C.ALLEGRO_MIXER) *Mixer {
 	if data == nil {
@@ -531,10 +544,7 @@ func wrapMixerRaw(data *C.ALLEGRO_MIXER) *Mixer {
 // Wraps a C mixer into a go mixer and sets up a finalizer that calls Destroy()
 func wrapMixer(data *C.ALLEGRO_MIXER) *Mixer {
 	self := wrapMixerRaw(data)
-	if self != nil {
-		runtime.SetFinalizer(self, func(me *Mixer) { me.Destroy() })
-	}
-	return self
+	return self.SetDestroyFinalizer()
 }
 
 func createMixer(freq uint, depth AudioDepth, chan_conf ChannelConf) *C.ALLEGRO_MIXER {
@@ -670,13 +680,18 @@ func wrapVoiceRaw(data *C.ALLEGRO_VOICE) *Voice {
 	return &Voice{data}
 }
 
-// Wraps a C voice into a go mixer and sets up a finalizer that calls Destroy()
-func wrapVoice(data *C.ALLEGRO_VOICE) *Voice {
-	self := wrapVoiceRaw(data)
+// Sets up a finalizer for this Voice Wraps a C voice that calls Destroy()
+func (self *Voice) SetDestroyFinalizer() *Voice {
 	if self != nil {
 		runtime.SetFinalizer(self, func(me *Voice) { me.Destroy() })
 	}
 	return self
+}
+
+// Wraps a C voice into a go mixer and sets up a finalizer that calls Destroy()
+func wrapVoice(data *C.ALLEGRO_VOICE) *Voice {
+	self := wrapVoiceRaw(data)
+	return self.SetDestroyFinalizer()
 }
 
 // creates a C voice 
@@ -870,7 +885,7 @@ func LoadSampleRaw(filename string) *Sample {
 
 // Loads a sample from a filename and sets up a finalizer 
 func LoadSample(filename string) *Sample {
-	return wrapSample(loadSample(filename))
+	return LoadSampleRaw(filename).SetDestroyFinalizer()
 }
 
 // Saves a sample to a given filename
@@ -894,7 +909,7 @@ func LoadAudioStreamRaw(filename string, buffer_count, samples uint) *AudioStrea
 
 // Loads a sample from a filename and sets up a finalizer 
 func LoadAudioStream(filename string, buffer_count, samples uint) *AudioStream {
-	return wrapAudioStream(loadAudioStream(filename, buffer_count, samples))
+	return LoadAudioStreamRaw(filename, buffer_count, samples).SetDestroyFinalizer()
 }
 
 // Allegro's own file for cross platform and physfs reasons.
@@ -910,6 +925,14 @@ func (self *File) Close() {
 	self.handle = nil
 }
 
+// Wraps an ALLEGRO_FILE into a File
+func wrapFileRaw(file *C.ALLEGRO_FILE) *File {
+	if file == nil {
+		return nil
+	}
+	return &File{file}
+}
+
 // Opens an Allegro File
 func openFile(filename, mode string) *C.ALLEGRO_FILE {
 	cfilename := cstr(filename)
@@ -919,24 +942,179 @@ func openFile(filename, mode string) *C.ALLEGRO_FILE {
 	return C.al_fopen(cfilename, cmode)
 }
 
-/*
+// Sets up a finalizer for this File that calls Close()
+func (self *File) SetCloseFinalizer() *File {
+	if self != nil {
+		runtime.SetFinalizer(self, func(me *File) { me.Close() })
+	}
+	return self
+}
 
-ALLEGRO_KCM_AUDIO_FUNC(ALLEGRO_SAMPLE *, al_load_sample_f, (ALLEGRO_FILE* fp, const char *ident));
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_save_sample_f, (ALLEGRO_FILE* fp, const char *ident,
-	ALLEGRO_SAMPLE *spl));
-ALLEGRO_KCM_AUDIO_FUNC(ALLEGRO_AUDIO_STREAM *, al_load_audio_stream_f, (ALLEGRO_FILE* fp, const char *ident,
-	size_t buffer_count, unsigned int samples));
+// Wraps a file and sets up a finalizer that calls Destroy()
+func wrapFile(data *C.ALLEGRO_FILE) *File {
+	self := wrapFileRaw(data)
+	return self.SetCloseFinalizer()
+}
 
-ALLEGRO_KCM_AUDIO_FUNC(ALLEGRO_EVENT_SOURCE *, al_get_audio_event_source, (void));
+// Opens a file with no finalizer set
+func OpenFileRaw(filename, mode string) *File {
+	self := openFile(filename, mode)
+	return wrapFileRaw(self)
+}
 
+// Opens a file with a Close finalizer set
+func OpenFile(filename, mode string) *File {
+	self := OpenFileRaw(filename, mode)
+	return self.SetCloseFinalizer()
+}
 
-ALLEGRO_KCM_AUDIO_FUNC(ALLEGRO_AUDIO_RECORDER *, al_create_audio_recorder, (size_t fragment_count,
-   unsigned int samples, unsigned int freq, AudioDepth depth, ALLEGRO_CHANNEL_CONF chan_conf));
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_start_audio_recorder, (ALLEGRO_AUDIO_RECORDER *r));
-ALLEGRO_KCM_AUDIO_FUNC(void, al_stop_audio_recorder, (ALLEGRO_AUDIO_RECORDER *r));
-ALLEGRO_KCM_AUDIO_FUNC(bool, al_is_audio_recorder_recording, (ALLEGRO_AUDIO_RECORDER *r));
-ALLEGRO_KCM_AUDIO_FUNC(ALLEGRO_EVENT_SOURCE *, al_get_audio_recorder_event_source,
-   (ALLEGRO_AUDIO_RECORDER *r));
-ALLEGRO_KCM_AUDIO_FUNC(ALLEGRO_AUDIO_RECORDER_EVENT *, al_get_audio_recorder_event, (ALLEGRO_EVENT *event));
-ALLEGRO_KCM_AUDIO_FUNC(void, al_destroy_audio_recorder, (ALLEGRO_AUDIO_RECORDER *r));
-*/
+// Loads a Sample from a File. Filetype is a file extension that identifies the file type 
+// like (.wav, .ogg, etc))
+func (self *File) loadSample(filetype string) *C.ALLEGRO_SAMPLE {
+	cfiletype := cstr(filetype)
+	defer cstrFree(cfiletype)
+	return C.al_load_sample_f(self.handle, cfiletype)
+}
+
+// Saves a Sample to a File. Filetype is a file extension that identifies the file type 
+func (self *File) SaveSample(filetype string, sample *Sample) bool {
+	cfiletype := cstr(filetype)
+	defer cstrFree(cfiletype)
+	return cb2b(C.al_save_sample_f(self.handle, cfiletype, sample.handle))
+}
+
+// Loads an ALLEGRO_AUDIO_STREAM from a file. Filetype is a file extension
+// that identifies the file type (.ogg, etc)
+func (self *File) loadAudioStream(filetype string, buffer_count,
+	samples uint) *C.ALLEGRO_AUDIO_STREAM {
+	cfiletype := cstr(filetype)
+	defer cstrFree(cfiletype)
+	return C.al_load_audio_stream_f(self.handle, cfiletype,
+		C.size_t(buffer_count), C.uint(samples))
+}
+
+// Loads a Sample from a File. Filetype is a file extension that identifies the file type 
+// like (.wav, .ogg, etc))
+func (self *File) LoadSampleRaw(filetype string) *Sample {
+	return wrapSampleRaw(loadSample(filetype))
+}
+
+// Loads a Sample from a File. Filetype is a file extension that identifies the file type 
+// like (.wav, .ogg, etc)). Sets up a finalizer. 
+func (self *File) LoadSample(filetype string) *Sample {
+	return LoadSampleRaw(filetype).SetDestroyFinalizer()
+}
+
+// Loads an AudioStream from a file. Filetype is a file extension
+// that identifies the file type (.ogg, etc)
+func (self *File) LoadAudioStreamRaw(filetype string, buffer_count,
+	samples uint) *AudioStream {
+	return wrapAudioStreamRaw(loadAudioStream(filetype, buffer_count, samples))
+}
+
+// Loads an AudioStream from a file. Filetype is a file extension
+// that identifies the file type (.ogg, etc). Sets up a finalizer.
+func (self *File) LoadAudioStream(filetype string, buffer_count,
+	samples uint) *AudioStream {
+	return LoadAudioStreamRaw(filetype, buffer_count, samples).SetDestroyFinalizer()
+}
+
+// Returns the event source of the audio subsystem 
+func AudioEventSource() *EventSource {
+	return wrapEventSourceRaw(C.al_get_audio_event_source())
+}
+
+// Converts a recorder to it's underlying C pointer
+func (self *AudioRecorder) toC() *C.ALLEGRO_AUDIO_RECORDER {
+	return (*C.ALLEGRO_AUDIO_RECORDER)(self.handle)
+}
+
+// Destroys the recorder.
+func (self *AudioRecorder) Destroy() {
+	if self.handle != nil {
+		C.al_destroy_audio_recorder(self.toC())
+	}
+	self.handle = nil
+}
+
+// Wraps a C recorder into a go mixer
+func wrapAudioRecorderRaw(data *C.ALLEGRO_AUDIO_RECORDER) *AudioRecorder {
+	if data == nil {
+		return nil
+	}
+	return &AudioRecorder{data}
+}
+
+// Sets up a finalizer for this AudioRecorder Wraps a C recorder that calls Destroy()
+func (self *AudioRecorder) SetDestroyFinalizer() *AudioRecorder {
+	if self != nil {
+		runtime.SetFinalizer(self, func(me *AudioRecorder) { me.Destroy() })
+	}
+	return self
+}
+
+// Wraps a C recorder into a go recorder and sets up a finalizer that calls Destroy()
+func wrapAudioRecorder(data *C.ALLEGRO_AUDIO_RECORDER) *AudioRecorder {
+	self := wrapAudioRecorderRaw(data)
+	return self.SetDestroyFinalizer()
+}
+
+// Creates a C recorder 
+func createAudioRecorder(fragment_count, samples, freq uint,
+	depth AudioDepth, chan_conf ChannelConf) *C.ALLEGRO_AUDIO_RECORDER {
+	return C.al_create_audio_recorder(C.size_t(fragment_count), C.uint(samples),
+		C.uint(freq), depth.toC(), chan_conf.toC())
+}
+
+// Creates an Audio Recorder and sets no finalizer
+func CreateAudioRecorderRaw(fragment_count, samples, freq uint,
+	depth AudioDepth, chan_conf ChannelConf) *AudioRecorder {
+	return wrapAudioRecorderRaw(createAudioRecorder(fragment_count, samples, freq, depth, chan_conf))
+}
+
+// Creates an Audio Recorder and sets a finalizer
+func CreateAudioRecorder(fragment_count, samples, freq uint,
+	depth AudioDepth, chan_conf ChannelConf) *AudioRecorder {
+	return CreateAudioRecorderRaw(fragment_count, samples,
+		freq, depth, chan_conf).SetDestroyFinalizer()
+}
+
+// Starts recording on the audio recorder.
+func (self *AudioRecorder) Start() bool {
+	return cb2b(C.al_start_audio_recorder(self.handle))
+}
+
+// Stops recording on the audio recorder.
+func (self *AudioRecorder) Stop() {
+	C.al_stop_audio_recorder(self.handle)
+}
+
+// Gets the audio recorder's event source
+func (self *AudioRecorder) EventSource() *EventSource {
+	return wrapEventSourceRaw(C.al_get_audio_recorder_event_source(self.handle))
+}
+
+// Converts to AudioRecorderEvent
+func wrapAudioRecorderEvent(event *C.ALLEGRO_AUDIO_RECORDER_EVENT) *AudioRecorderEvent {
+	return (*AudioRecorderEvent)(event)
+}
+
+// Converts an event into an allegro recorder event 
+func (self *Event) AudioRecorderEvent() *AudioRecorderEvent {
+	return wrapAudioRecorderEvent(C.al_get_audio_recorder_event(self.toC()))
+}
+
+// Gets an unsafe pointer to the recorder event's buffer 
+func (self *AudioRecorderEvent) BufferPointer() unsafe.Pointer {
+	return self.buffer
+}
+
+// Gets the amount of samples for this recorder event
+func (self *AudioRecorderEvent) Samples() uint {
+	return uint(self.samples)
+}
+
+// Gets the recorder's buffer copied into a byte slice
+func (self *AudioRecorderEvent) Buffer() []byte {
+	return C.GoBytes(self.buffer, C.int(self.samples))
+}

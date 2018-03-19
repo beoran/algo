@@ -89,3 +89,62 @@ func SelfDestruct(self Destroyer) {
 	}
 	runtime.SetFinalizer(self, clean)
 }
+
+// this is too for laziness, but it's quite handy
+func cf(f float32) C.float {
+	return C.float(f)
+}
+
+// this is too for laziness, but it's quite handy
+func ci(f int) C.int {
+	return C.int(f)
+}
+
+// this is too for laziness, but it's quite handy
+func cd(f float64) C.double {
+	return C.double(f)
+}
+
+/* This is the usual boilerplate for wrapping C types through a handle
+
+type XXX struct {
+    handle * C.YYY
+}
+
+// Converts a zzz to it's underlying C pointer
+func (self * XXX) toC() *C.YYY {
+	return (*C.YYY)(self.handle)
+}
+
+// Destroys the zzz.
+func (self *XXX) Destroy() {
+	if self.handle != nil {
+		C.al_destroy_zzz(self.toC())
+	}
+	self.handle = nil
+}
+
+// Wraps a C zzz into a go zzz
+func wrapXXXRaw(data *C.YYY) *XXX {
+	if data == nil {
+		return nil
+	}
+	return &XXX{data}
+}
+
+// Sets up a finalizer for this XXX that calls Destroy()
+func (self *XXX) SetDestroyFinalizer() *XXX {
+	if self != nil {
+		runtime.SetFinalizer(self, func(me *XXX) { me.Destroy() })
+	}
+	return self
+}
+
+// Wraps a C zzz into a go zzz and sets up a finalizer that calls Destroy()
+func wrapXXX(data *C.YYY) *XXX {
+	self := wrapXXXRaw(data)
+	return self.SetDestroyFinalizer()
+}
+
+
+*/
