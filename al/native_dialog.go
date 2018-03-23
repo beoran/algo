@@ -7,6 +7,7 @@ package al
 #cgo CFLAGS: -I/usr/local/include
 #cgo linux LDFLAGS: -lc_nonshared
 #include <stdlib.h>
+#include <stdint.h>
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_native_dialog.h>
 #include "helpers.h"
@@ -17,198 +18,198 @@ import "unsafe"
 import "runtime"
 
 const (
-	FILECHOOSER_FILE_MUST_EXIST = 1
-	FILECHOOSER_SAVE            = 2
-	FILECHOOSER_FOLDER          = 4
-	FILECHOOSER_PICTURES        = 8
-	FILECHOOSER_SHOW_HIDDEN     = 16
-	FILECHOOSER_MULTIPLE        = 32
+    FILECHOOSER_FILE_MUST_EXIST = 1
+    FILECHOOSER_SAVE            = 2
+    FILECHOOSER_FOLDER          = 4
+    FILECHOOSER_PICTURES        = 8
+    FILECHOOSER_SHOW_HIDDEN     = 16
+    FILECHOOSER_MULTIPLE        = 32
 
-	MESSAGEBOX_WARN      = 1 << 0
-	MESSAGEBOX_ERROR     = 1 << 1
-	MESSAGEBOX_OK_CANCEL = 1 << 2
-	MESSAGEBOX_YES_NO    = 1 << 3
-	MESSAGEBOX_QUESTION  = 1 << 4
+    MESSAGEBOX_WARN      = 1 << 0
+    MESSAGEBOX_ERROR     = 1 << 1
+    MESSAGEBOX_OK_CANCEL = 1 << 2
+    MESSAGEBOX_YES_NO    = 1 << 3
+    MESSAGEBOX_QUESTION  = 1 << 4
 
-	TEXTLOG_NO_CLOSE  = 1 << 0
-	TEXTLOG_MONOSPACE = 1 << 1
+    TEXTLOG_NO_CLOSE  = 1 << 0
+    TEXTLOG_MONOSPACE = 1 << 1
 
-	EVENT_NATIVE_DIALOG_CLOSE = 600
-	EVENT_MENU_CLICK          = 601
+    EVENT_NATIVE_DIALOG_CLOSE = 600
+    EVENT_MENU_CLICK          = 601
 
-	MENU_ITEM_ENABLED  = 0
-	MENU_ITEM_CHECKBOX = 1
-	MENU_ITEM_CHECKED  = 2
-	MENU_ITEM_DISABLED = 4
+    MENU_ITEM_ENABLED  = 0
+    MENU_ITEM_CHECKBOX = 1
+    MENU_ITEM_CHECKED  = 2
+    MENU_ITEM_DISABLED = 4
 )
 
 type FileChooser struct {
-	handle *C.ALLEGRO_FILECHOOSER
+    handle *C.ALLEGRO_FILECHOOSER
 }
 
 // Converts a file chooser to it's underlying C pointer
 func (self *FileChooser) toC() *C.ALLEGRO_FILECHOOSER {
-	return (*C.ALLEGRO_FILECHOOSER)(self.handle)
+    return (*C.ALLEGRO_FILECHOOSER)(self.handle)
 }
 
 // Destroys the file chooser.
 func (self *FileChooser) Destroy() {
-	if self.handle != nil {
-		C.al_destroy_native_file_dialog(self.toC())
-	}
-	self.handle = nil
+    if self.handle != nil {
+        C.al_destroy_native_file_dialog(self.toC())
+    }
+    self.handle = nil
 }
 
 // Wraps a C file chooser into a go file chooser
 func wrapFileChooserRaw(data *C.ALLEGRO_FILECHOOSER) *FileChooser {
-	if data == nil {
-		return nil
-	}
-	return &FileChooser{data}
+    if data == nil {
+        return nil
+    }
+    return &FileChooser{data}
 }
 
 // Sets up a finalizer for this FileChooser that calls Destroy()
 func (self *FileChooser) SetDestroyFinalizer() *FileChooser {
-	if self != nil {
-		runtime.SetFinalizer(self, func(me *FileChooser) { me.Destroy() })
-	}
-	return self
+    if self != nil {
+        runtime.SetFinalizer(self, func(me *FileChooser) { me.Destroy() })
+    }
+    return self
 }
 
 // Wraps a C voice into a go mixer and sets up a finalizer that calls Destroy()
 func wrapFileChooser(data *C.ALLEGRO_FILECHOOSER) *FileChooser {
-	self := wrapFileChooserRaw(data)
-	return self.SetDestroyFinalizer()
+    self := wrapFileChooserRaw(data)
+    return self.SetDestroyFinalizer()
 }
 
 type TextLog struct {
-	handle *C.ALLEGRO_TEXTLOG
+    handle *C.ALLEGRO_TEXTLOG
 }
 
 // Converts a native_text_log to it's underlying C pointer
 func (self *TextLog) toC() *C.ALLEGRO_TEXTLOG {
-	return (*C.ALLEGRO_TEXTLOG)(self.handle)
+    return (*C.ALLEGRO_TEXTLOG)(self.handle)
 }
 
 // Closes the native_text_log.
 func (self *TextLog) Close() {
-	if self.handle != nil {
-		C.al_close_native_text_log(self.toC())
-	}
-	self.handle = nil
+    if self.handle != nil {
+        C.al_close_native_text_log(self.toC())
+    }
+    self.handle = nil
 }
 
 // Wraps a C native_text_log into a go native_text_log
 func wrapTextLogRaw(data *C.ALLEGRO_TEXTLOG) *TextLog {
-	if data == nil {
-		return nil
-	}
-	return &TextLog{data}
+    if data == nil {
+        return nil
+    }
+    return &TextLog{data}
 }
 
 // Sets up a finalizer for this TextLog that calls Destroy()
 func (self *TextLog) SetDestroyFinalizer() *TextLog {
-	if self != nil {
-		runtime.SetFinalizer(self, func(me *TextLog) { me.Close() })
-	}
-	return self
+    if self != nil {
+        runtime.SetFinalizer(self, func(me *TextLog) { me.Close() })
+    }
+    return self
 }
 
 // Wraps a C native_text_log into a go native_text_log and sets up a finalizer that calls Destroy()
 func wrapTextLog(data *C.ALLEGRO_TEXTLOG) *TextLog {
-	self := wrapTextLogRaw(data)
-	return self.SetDestroyFinalizer()
+    self := wrapTextLogRaw(data)
+    return self.SetDestroyFinalizer()
 }
 
 type Menu struct {
-	handle *C.ALLEGRO_MENU
+    handle *C.ALLEGRO_MENU
 }
 
 // Converts a menu to it's underlying C pointer
 func (self *Menu) toC() *C.ALLEGRO_MENU {
-	return (*C.ALLEGRO_MENU)(self.handle)
+    return (*C.ALLEGRO_MENU)(self.handle)
 }
 
 // Destroys the menu.
 func (self *Menu) Destroy() {
-	if self.handle != nil {
-		C.al_destroy_menu(self.toC())
-	}
-	self.handle = nil
+    if self.handle != nil {
+        C.al_destroy_menu(self.toC())
+    }
+    self.handle = nil
 }
 
 // Wraps a C menu into a go menu
 func wrapMenuRaw(data *C.ALLEGRO_MENU) *Menu {
-	if data == nil {
-		return nil
-	}
-	return &Menu{data}
+    if data == nil {
+        return nil
+    }
+    return &Menu{data}
 }
 
 // Sets up a finalizer for this Menu that calls Destroy()
 func (self *Menu) SetDestroyFinalizer() *Menu {
-	if self != nil {
-		runtime.SetFinalizer(self, func(me *Menu) { me.Destroy() })
-	}
-	return self
+    if self != nil {
+        runtime.SetFinalizer(self, func(me *Menu) { me.Destroy() })
+    }
+    return self
 }
 
 // Wraps a C menu into a go menu and sets up a finalizer that calls Destroy()
 func wrapMenu(data *C.ALLEGRO_MENU) *Menu {
-	self := wrapMenuRaw(data)
-	return self.SetDestroyFinalizer()
+    self := wrapMenuRaw(data)
+    return self.SetDestroyFinalizer()
 }
 
 type MenuInfo C.ALLEGRO_MENU_INFO
 
 func makeMenuInfo(text *string, id, flags int, icon *Bitmap) C.ALLEGRO_MENU_INFO {
-	res := C.ALLEGRO_MENU_INFO{}
-	if text == nil {
-		res.caption = nil
-	} else {
-		bytes := []byte(*text)
-		res.caption = (*C.char)(unsafe.Pointer(&bytes[0]))
-	}
-	res.id = ci(id)
-	res.flags = ci(flags)
-	res.icon = icon.handle
-	return res
+    res := C.ALLEGRO_MENU_INFO{}
+    if text == nil {
+        res.caption = nil
+    } else {
+        bytes := []byte(*text)
+        res.caption = (*C.char)(unsafe.Pointer(&bytes[0]))
+    }
+    res.id = cui16(id)
+    res.flags = ci(flags)
+    res.icon = icon.handle
+    return res
 }
 
 /// Formats a menuinfo element for an element of the menu.
 func MakeMenuInfo(text *string, id, flags int, icon *Bitmap) MenuInfo {
-	return (MenuInfo)(makeMenuInfo(text, id, flags, icon))
+    return (MenuInfo)(makeMenuInfo(text, id, flags, icon))
 }
 
 // Returns a menuinfo that is a separator
 func MenuSeparator() MenuInfo {
-	return MakeMenuInfo(nil, -1, 0, nil)
+    return MakeMenuInfo(nil, -1, 0, nil)
 }
 
 // Returns a menuinfo that is the start of the menu
 func StartOfMenu(caption string, id int) MenuInfo {
-	return MakeMenuInfo(&caption, id, 0, nil)
+    return MakeMenuInfo(&caption, id, 0, nil)
 }
 
 // Returns a menuinfo that is the end of the menu
 func EndOfMenu(caption string, id int) MenuInfo {
-	return MakeMenuInfo(nil, 0, 0, nil)
+    return MakeMenuInfo(nil, 0, 0, nil)
 }
 
 // Starts the native dialog addon
 func InitNativeDialogAddon() bool {
-	return cb2b(C.al_init_native_dialog_addon())
+    return cb2b(C.al_init_native_dialog_addon())
 }
 
 // Stops the native dialog addon
 func ShutdownNativeDialogAddon() {
-	C.al_shutdown_native_dialog_addon()
+    C.al_shutdown_native_dialog_addon()
 }
 
 // Creates a native file dialog.
 func CreateNativeFileDialogRaw(path, title, patterns string, mode int) *FileChooser {
-	return nil
-	//return wrapFileChooser()
+    return nil
+    //return wrapFileChooser()
 }
 
 /*
