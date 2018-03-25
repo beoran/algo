@@ -3,6 +3,7 @@ package al
 import "testing"
 import "runtime"
 import "flag"
+import "path/filepath"
 import "math/rand"
 
 // some parameters
@@ -24,6 +25,18 @@ func TestGetAllegroVersion(t *testing.T) {
 const CALLBACK_RESULT = 77
 const BMP_W = 11
 const BMP_H = 23
+
+
+// Helper that loads bitmaps from the testdata folder
+
+func loadBitmap(t *testing.T, name string) * Bitmap {
+    path := filepath.Join("testdata", name) // relative path
+    bmp := LoadBitmap(path)
+    if bmp == nil {
+        t.Fatalf("Could not load bitmap: %s: %d\n", path, Errno())
+    }
+    return bmp
+}
 
 // Test C callbacks, for example create bitmap  
 
@@ -252,7 +265,33 @@ func randomColor() Color {
     return CreateColor(rand.Float32(), rand.Float32(), rand.Float32(), 1.0)
 }
 
-// Test some primitive functions 
+// Test some bitmap functions 
+func TestBitmaps(t *testing.T) {
+    InstallSystem()
+    defer UninstallSystem()
+    InitImageAddon()
+    defer ShutdownImageAddon()
+    
+    display := makeDisplay()
+    if display == nil {
+        t.Error("Error creating display.")
+    }
+    
+    bmp := loadBitmap(t, "gin_feather.png")
+    blue := CreateColor(0.0, 0.0, 1.0, 1.0)
+    yellow := CreateColor(1.0, 1.0, 0.0, 1.0)
+    ClearToColor(blue)
+    bmp.DrawTinted(yellow, 20, 30, 0)
+    FlipDisplay()
+    tb := TargetBitmap()
+    if (!tb.Save(filepath.Join("testdata", "TestBitmaps.out.png"))) {
+        t.Errorf("Could not save output file.")
+    }
+    Rest(1.0)
+    display.Destroy()
+}
+
+// Test some primitive functions
 func TestPrimitives(t *testing.T) {
     InstallSystem()
     defer UninstallSystem()
@@ -275,7 +314,6 @@ func TestPrimitives(t *testing.T) {
     Rest(1.0)
     display.Destroy()
 }
-
 
 
 // Benchmark basic display function ClearToColor

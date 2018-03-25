@@ -851,3 +851,8 @@ func (self *Timer) GetEventSource() *EventSource {
 // Do nothing function for benchmarking only
 func DoNothing() {
 }
+
+// Returns Allehro's error number
+func Errno() int {
+    return int(C.al_get_errno())
+}
