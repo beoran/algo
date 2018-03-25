@@ -3,6 +3,7 @@ package al
 import "testing"
 import "runtime"
 import "flag"
+import "math/rand"
 
 // some parameters
 const expected_version = 84017665 // 83952897
@@ -243,6 +244,35 @@ func TestFonts(t *testing.T) {
     FlipDisplay()
     Rest(1.0)
     font.Destroy()
+    display.Destroy()
+}
+
+
+func randomColor() Color {
+    return CreateColor(rand.Float32(), rand.Float32(), rand.Float32(), 1.0)
+}
+
+// Test some primitive functions 
+func TestPrimitives(t *testing.T) {
+    InstallSystem()
+    defer UninstallSystem()
+    InitPrimitivesAddon()
+    defer ShutdownPrimitivesAddon()
+    
+    display := makeDisplay()
+    if display == nil {
+        t.Error("Error creating display.")
+    }
+
+    blue := CreateColor(0.0, 0.0, 1.0, 1.0)
+    yellow := CreateColor(1.0, 1.0, 0.0, 1.0)
+    ClearToColor(blue)
+    DrawLine(0,0,640,480, yellow, 1)   
+    DrawCircle(50,50,10, randomColor(), 3.0)
+    DrawEllipse(70,70,20,30, randomColor(), 5.0)
+    DrawFilledRoundedRectangle(120, 120, 300, 300, 7, 5, randomColor())
+    FlipDisplay()
+    Rest(1.0)
     display.Destroy()
 }
 

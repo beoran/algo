@@ -17,10 +17,10 @@ type Joystick struct {
     handle *C.ALLEGRO_JOYSTICK
 }
 
-// Destroyst he joystick. According to the Allegro documentation, this 
+// Destroys the joystick. According to the Allegro documentation, this 
 // does nothing.
 func (self *Joystick) Destroy() {
-    // Some problems is this is enabled so make sure this does nothing...
+    // Some problems if this is enabled so make sure this does nothing...
     // C.al_release_joystick(self.handle)
 }
 
@@ -196,30 +196,12 @@ func (self *Joystick) GetState() *JoystickState {
     return state
 }
 
-/*
-AL_FUNC(bool,           al_install_joystick,    (void));
-AL_FUNC(void,           al_uninstall_joystick,  (void));
-AL_FUNC(bool,           al_is_joystick_installed, (void));
-AL_FUNC(bool,           al_reconfigure_joysticks, (void));
+// Reconfigure the joystics afetre a new one connected.
+func ReconfigureJoysticks() bool {
+    return bool(C.al_reconfigure_joysticks())
+}
 
-AL_FUNC(int,            al_get_num_joysticks,   (void));
-AL_FUNC(ALLEGRO_JOYSTICK *, al_get_joystick,    (int joyn));
-AL_FUNC(void,           al_release_joystick,    (ALLEGRO_JOYSTICK *));
-AL_FUNC(bool,           al_get_joystick_active, (ALLEGRO_JOYSTICK *));
-AL_FUNC(const char*,    al_get_joystick_name,   (ALLEGRO_JOYSTICK *));
+func JoystickEventSource() * EventSource {
+    return wrapEventSourceRaw(C.al_get_joystick_event_source())
+} 
 
-AL_FUNC(int,            al_get_joystick_num_sticks, (ALLEGRO_JOYSTICK *));
-AL_FUNC(int, al_get_joystick_stick_flags, (ALLEGRO_JOYSTICK *, int stick)); 
-
-AL_FUNC(const char*,    al_get_joystick_stick_name, (ALLEGRO_JOYSTICK *, int stick));
-
-AL_FUNC(int,            al_get_joystick_num_axes,   (ALLEGRO_JOYSTICK *, int stick));
-AL_FUNC(const char*,    al_get_joystick_axis_name,  (ALLEGRO_JOYSTICK *, int stick, int axis));
-
-AL_FUNC(int,            al_get_joystick_num_buttons,  (ALLEGRO_JOYSTICK *));
-AL_FUNC(const char*,    al_get_joystick_button_name,  (ALLEGRO_JOYSTICK *, int buttonn));
-
-AL_FUNC(void,           al_get_joystick_state,  (ALLEGRO_JOYSTICK *, ALLEGRO_JOYSTICK_STATE *ret_state));
-
-AL_FUNC(ALLEGRO_EVENT_SOURCE *, al_get_joystick_event_source, (void));
-*/
