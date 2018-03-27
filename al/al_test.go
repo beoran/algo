@@ -332,30 +332,56 @@ func TestPrimitives2(t *testing.T) {
     
     bmp := loadBitmap(t, "gin_feather.png")
     blue := CreateColor(0.0, 0.0, 1.0, 1.0)
-    yellow := CreateColor(1.0, 1.0, 0.0, 1.0)
+    bg := CreateColor(1.0, 1.0, 1.0, 1.0)
     ClearToColor(blue)
     v := make([]Vertex, 3)
-    v[0].x = 10
-    v[0].y = 20
-    v[0].color = yellow.toC()
-    v[0].u = 0.0
-    v[0].v = 0.0
     
-    v[1].x = 110
-    v[1].y = 120
-    v[0].u = 1.0
-    v[0].v = 0.0
-
-    v[2].x = 120
-    v[2].y = 210
-    v[0].u = 0.0
-    v[0].v = 1.0
+    v[0].Init(10.0, 20.0, 0.0,  0.0 * bmp.Widthf(), 0.0, bg)
+    v[1].Init(10.0, 120.0, 0.0,  1.0 * bmp.Widthf(), 0.0, bg)
+    v[2].Init(120.0, 120.0, 0.0,  0.0 * bmp.Widthf(), 1.0 * bmp.Heightf(), bg)
     
     DrawPrim(v, bmp, 0, 3, PRIM_TRIANGLE_LIST)
     FlipDisplay()
     Rest(1.0)
     display.Destroy()
 }
+
+// Test some native dialogs
+func TestDialogs(t *testing.T) {
+    InstallSystem()
+    defer UninstallSystem()
+    InitNativeDialogAddon()
+    defer ShutdownNativeDialogAddon()
+    
+    
+    display := makeDisplay()
+    if display == nil {
+        t.Error("Error creating display.")
+    }
+    
+    fc := CreateNativeFileDialog(".","title","*", FILECHOOSER_FILE_MUST_EXIST | FILECHOOSER_MULTIPLE)
+    fc.Show(display)
+    cn := fc.Count()
+    
+    for i:= 0; i < cn ; i ++ {
+        fn :=  fc.Path(i)
+        t.Logf("File %d of %d selected: %s\n", i + 1, cn, fn)
+    }
+    
+    tl := CreateNativeTextLog("title", TEXTLOG_MONOSPACE)
+    tl.Append("append")
+    
+    res := display.ShowNativeMessageBox("title", "heading", "text", "buttons", MESSAGEBOX_WARN)
+    t.Logf("Dialog result: %d\n", res)
+    
+    
+    FlipDisplay()
+    Rest(1.0)
+    tl.Close()
+    fc.Destroy()
+    display.Destroy()
+}
+
 
 
 // Benchmark basic display function ClearToColor

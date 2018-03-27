@@ -320,6 +320,39 @@ func (font * Font) FallbackFont() (* Font) {
     return wrapFontRaw(C.al_get_fallback_font(font.toC()))
 }
 
+// Glyph per glyph drawing 
+
+// Draws an individual glyph from a font
+func (font * Font) DrawGlyph(color Color, x, y float32, codepoint int) {
+    C.al_draw_glyph(font.toC(), color.toC(), C.float(x), C.float(y), C.int(codepoint))
+}
+
+// Gets the width of the glyph for the font
+func (font * Font) GlyphWidth(color Color, codepoint int) int {
+   return int(C.al_get_glyph_width(font.toC(), C.int(codepoint)))
+}
+
+// Gets the advance between two code points for the font
+func (font * Font) GlyphAdvance(color Color, cp1, cp2 int) int {
+   return int(C.al_get_glyph_advance(font.toC(), C.int(cp1), C.int(cp2)))
+}
+
+// Gets the dimensions of the glyph for the font
+func (font * Font) GlyphDimensions(color Color, cp int) (ok bool, bbx, bby, bbw, bbh int) {
+   var cbbx, cbby, cbbw, cbbh C.int
+ 
+   ok = bool(C.al_get_glyph_dimensions(font.toC(), C.int(cp), &cbbx, &cbby, &cbbw, &cbbh))
+ 
+   bbx = int(cbbx)
+   bby = int(cbby)
+   bbw = int(cbbw)
+   bbh = int(cbbh)
+   
+   return ok, bbx, bby, bbw, bbh
+}
+
+
+
 /*
 The fallback is a hassle, might be better to do this in Go.
 ALLEGRO_FONT_FUNC(void, al_do_multiline_text, (const ALLEGRO_FONT *font,

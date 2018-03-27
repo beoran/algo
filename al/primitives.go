@@ -494,6 +494,15 @@ func DrawFilledPolygon(vertices []float32, join LineJoin,  color Color) {
     C.al_draw_filled_polygon((*C.float)(&vertices[0]), C.int(len(vertices)/2), color.toC())
 }
 
+func (vert * Vertex) Init(x, y, z, u, v float32, color Color) {
+    vert.x      = C.float(x)
+    vert.y      = C.float(y)
+    vert.z      = C.float(z)
+    vert.u      = C.float(u)
+    vert.v      = C.float(v)
+    vert.color  = color.toC()
+}
+
 
 var later = `
 /*

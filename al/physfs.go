@@ -15,9 +15,9 @@ import "C"
 
 // Sets up to use the PHYSFS helper to easily read data in zip file .
 func SetPhysfsFileInterface() {
-	C.al_set_physfs_file_interface()
+    C.al_set_physfs_file_interface()
 }
 
-func GetAllegroPhysfsVersion() uint32 {
-	return uint32(C.al_get_allegro_physfs_version())
+func PhysfsVersion() uint32 {
+    return uint32(C.al_get_allegro_physfs_version())
 }

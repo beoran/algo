@@ -11,6 +11,11 @@ package al
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_native_dialog.h>
 #include "helpers.h"
+
+void al_append_native_text_log_wrapper(ALLEGRO_TEXTLOG * tl, const char * text) {
+    al_append_native_text_log(tl, "%s", text);
+}
+
 */
 import "C"
 
@@ -196,6 +201,10 @@ func EndOfMenu(caption string, id int) MenuInfo {
     return MakeMenuInfo(nil, 0, 0, nil)
 }
 
+func (info * MenuInfo) toC() * C.ALLEGRO_MENU_INFO {
+    return (*C.ALLEGRO_MENU_INFO)(info)
+}
+
 // Starts the native dialog addon
 func InitNativeDialogAddon() bool {
     return cb2b(C.al_init_native_dialog_addon())
@@ -207,97 +216,168 @@ func ShutdownNativeDialogAddon() {
 }
 
 // Creates a native file dialog.
-func CreateNativeFileDialogRaw(path, title, patterns string, mode int) *FileChooser {
-    return nil
-    //return wrapFileChooser()
+func CreateNativeFileDialog(path, title, patterns string, mode int) *FileChooser {    
+    cpath    := cstr(path)      ; defer cstrFree(cpath)
+    ctitle   := cstr(title)     ; defer cstrFree(ctitle)
+    cpatterns:= cstr(patterns)  ; defer cstrFree(cpatterns)
+    
+    return wrapFileChooser(C.al_create_native_file_dialog(cpath, ctitle, cpatterns, C.int(mode)))
 }
 
-/*
-TODO:
-ALLEGRO_DIALOG_FUNC(ALLEGRO_FILECHOOSER *, al_create_native_file_dialog, (char const *initial_path,
-   char const *title, char const *patterns, int mode));
-ALLEGRO_DIALOG_FUNC(bool, al_show_native_file_dialog, (ALLEGRO_DISPLAY *display, ALLEGRO_FILECHOOSER *dialog));
-ALLEGRO_DIALOG_FUNC(int, al_get_native_file_dialog_count, (const ALLEGRO_FILECHOOSER *dialog));
-ALLEGRO_DIALOG_FUNC(const char *, al_get_native_file_dialog_path, (const ALLEGRO_FILECHOOSER *dialog,
-   size_t index));
-ALLEGRO_DIALOG_FUNC(void, al_destroy_native_file_dialog, (ALLEGRO_FILECHOOSER *dialog));
+func (dialog * FileChooser) Show(display * Display) bool {
+    return bool(C.al_show_native_file_dialog(display.toC(), dialog.toC()))
+}
 
-ALLEGRO_DIALOG_FUNC(int, al_show_native_message_box, (ALLEGRO_DISPLAY *display, char const *title,
-   char const *heading, char const *text, char const *buttons, int flags));
+func (display * Display) ShowNativeFileDialog(dialog * FileChooser) bool {
+    return bool(C.al_show_native_file_dialog(display.toC(), dialog.toC()))
+}
 
-ALLEGRO_DIALOG_FUNC(ALLEGRO_TEXTLOG *, al_open_native_text_log, (char const *title, int flags));
-ALLEGRO_DIALOG_FUNC(void, al_close_native_text_log, (ALLEGRO_TEXTLOG *textlog));
-ALLEGRO_DIALOG_FUNC(void, al_append_native_text_log, (ALLEGRO_TEXTLOG *textlog, char const *format, ...));
-ALLEGRO_DIALOG_FUNC(ALLEGRO_EVENT_SOURCE *, al_get_native_text_log_event_source, (ALLEGRO_TEXTLOG *textlog));
+func (dialog *  FileChooser) Count() int {
+    return int(C.al_get_native_file_dialog_count(dialog.toC()))
+}
+
+func (dialog * FileChooser) Path(index int) string {
+    return C.GoString(C.al_get_native_file_dialog_path(dialog.toC(), C.size_t(index)))
+}
 
 
-ALLEGRO_DIALOG_FUNC(ALLEGRO_MENU *, al_create_menu, (void));
-ALLEGRO_DIALOG_FUNC(ALLEGRO_MENU *, al_create_popup_menu, (void));
-ALLEGRO_DIALOG_FUNC(ALLEGRO_MENU *, al_build_menu, (ALLEGRO_MENU_INFO *info));
-ALLEGRO_DIALOG_FUNC(int, al_append_menu_item, (ALLEGRO_MENU *parent, char const *title, int id, int flags,
-   ALLEGRO_BITMAP *icon, ALLEGRO_MENU *submenu));
-ALLEGRO_DIALOG_FUNC(int, al_insert_menu_item, (ALLEGRO_MENU *parent, int pos, char const *title, int id,
-   int flags, ALLEGRO_BITMAP *icon, ALLEGRO_MENU *submenu));
-ALLEGRO_DIALOG_FUNC(bool, al_remove_menu_item, (ALLEGRO_MENU *menu, int pos));
-ALLEGRO_DIALOG_FUNC(ALLEGRO_MENU *, al_clone_menu, (ALLEGRO_MENU *menu));
-ALLEGRO_DIALOG_FUNC(ALLEGRO_MENU *, al_clone_menu_for_popup, (ALLEGRO_MENU *menu));
-ALLEGRO_DIALOG_FUNC(void, al_destroy_menu, (ALLEGRO_MENU *menu));
+func (display * Display) ShowNativeMessageBox(title, heading, text, buttons string, flags int) int {
+    ctitle   := cstr(title)     ; defer cstrFree(ctitle)
+    cheading := cstr(heading)   ; defer cstrFree(cheading)
+    ctext    := cstr(text)      ; defer cstrFree(ctext)
+    cbuttons := cstr(buttons)   ; defer cstrFree(cbuttons)
+    
+    return int(C.al_show_native_message_box(display.toC(), ctitle, cheading, ctext, cbuttons, C.int(flags)))
+}
+
+// Creates a native text log.
+func CreateNativeTextLog(title string, flags int) * TextLog {    
+    ctitle   := cstr(title) ; defer cstrFree(ctitle)
+    
+    return wrapTextLog(C.al_open_native_text_log(ctitle, C.int(flags)))
+}
+
+func (log * TextLog) Append(text string) {
+    ctext    := cstr(text) ; defer cstrFree(ctext)
+    C.al_append_native_text_log_wrapper(log.toC(), ctext)
+}
+
+func (log * TextLog) EventSource() * EventSource {
+    return wrapEventSourceRaw(C.al_get_native_text_log_event_source(log.toC()))
+}
+
+func CreateMenu() * Menu {
+    return wrapMenu(C.al_create_menu())
+}
+
+func CreatePopupMenu() * Menu {
+    return wrapMenu(C.al_create_popup_menu())
+}
+
+func BuildMenu(info * MenuInfo) * Menu {
+    return wrapMenu(C.al_build_menu(info.toC()))
+}
+
+func (menu * Menu) AppendItem(title string, id, flags int, icon * Bitmap, submenu * Menu) int {
+    ctitle   := cstr(title)     ; defer cstrFree(ctitle)
+    return int(C.al_append_menu_item(menu.toC(), ctitle, C.uint16_t(id), C.int(flags), icon.toC(), submenu.toC()))
+}
+
+func (menu * Menu) InsertItem(pos int, title string, id, flags int, icon * Bitmap, submenu * Menu) int {
+    ctitle   := cstr(title)     ; defer cstrFree(ctitle)
+    return int(C.al_insert_menu_item(menu.toC(), C.int(pos), ctitle, C.uint16_t(id), C.int(flags), icon.toC(), submenu.toC()))
+}
+
+func (menu * Menu) RemoveItem(position int) bool {    
+    return bool(C.al_remove_menu_item(menu.toC(), C.int(position)))
+}
+
+func (menu * Menu) Clone() * Menu {
+    return wrapMenu(C.al_clone_menu(menu.toC()))
+}
+
+func (menu * Menu) CloneForPopup() * Menu {
+    return wrapMenu(C.al_clone_menu_for_popup(menu.toC()))
+}
+
+func (menu * Menu) Caption(pos int) string {
+    return C.GoString(C.al_get_menu_item_caption(menu.toC(), C.int(pos)))
+}
+
+func (menu * Menu) SetCaption(pos int, caption string) {
+    ccaption  := cstr(caption)     ; defer cstrFree(ccaption)
+    C.al_set_menu_item_caption(menu.toC(), C.int(pos), ccaption)
+}
+
+func (menu * Menu) Flags(pos int) int {
+    return int(C.al_get_menu_item_flags(menu.toC(), C.int(pos)))
+}
+
+func (menu * Menu) SetFlags(pos int, flags int) {    
+    C.al_set_menu_item_flags(menu.toC(), C.int(pos), C.int(flags))
+}
+
+func (menu * Menu) Icon(pos int) * Bitmap {
+    return wrapBitmapRaw(C.al_get_menu_item_icon(menu.toC(), C.int(pos)))
+}
+
+func (menu * Menu) SetIcon(pos int, icon * Bitmap) {    
+    C.al_set_menu_item_icon(menu.toC(), C.int(pos), icon.toC())
+}
 
 
-ALLEGRO_DIALOG_FUNC(const char *, al_get_menu_item_caption, (ALLEGRO_MENU *menu, int pos));
-ALLEGRO_DIALOG_FUNC(void, al_set_menu_item_caption, (ALLEGRO_MENU *menu, int pos, const char *caption));
-ALLEGRO_DIALOG_FUNC(int, al_get_menu_item_flags, (ALLEGRO_MENU *menu, int pos));
-ALLEGRO_DIALOG_FUNC(void, al_set_menu_item_flags, (ALLEGRO_MENU *menu, int pos, int flags));
-ALLEGRO_DIALOG_FUNC(int, al_toggle_menu_item_flags, (ALLEGRO_MENU *menu, int pos, int flags));
-ALLEGRO_DIALOG_FUNC(ALLEGRO_BITMAP *, al_get_menu_item_icon, (ALLEGRO_MENU *menu, int pos));
-ALLEGRO_DIALOG_FUNC(void, al_set_menu_item_icon, (ALLEGRO_MENU *menu, int pos, ALLEGRO_BITMAP *icon));
+func (menu * Menu) Find(id int) * Menu {
+    res     := C.al_find_menu(menu.toC(), C.uint16_t(id))
+    return wrapMenuRaw(res)
+} 
 
-ALLEGRO_DIALOG_FUNC(ALLEGRO_MENU *, al_find_menu, (ALLEGRO_MENU *haystack, int id));
-ALLEGRO_DIALOG_FUNC(bool, al_find_menu_item, (ALLEGRO_MENU *haystack, int id, ALLEGRO_MENU **menu, int *index));
 
-ALLEGRO_DIALOG_FUNC(ALLEGRO_EVENT_SOURCE *, al_get_default_menu_event_source, (void));
-ALLEGRO_DIALOG_FUNC(ALLEGRO_EVENT_SOURCE *, al_enable_menu_event_source, (ALLEGRO_MENU *menu));
-ALLEGRO_DIALOG_FUNC(void, al_disable_menu_event_source, (ALLEGRO_MENU *menu));
+func (menu * Menu) FindItem(id int) (ok bool, found * Menu, index int) {
+    var cmenu * C.ALLEGRO_MENU = nil
+    var cindex C.int = -1
+    res     := C.al_find_menu_item(menu.toC(), C.uint16_t(id), &cmenu, &cindex)
+    ok      = bool(res)
+    found   = wrapMenuRaw(cmenu)
+    index   = int(cindex)
+    return ok, menu, index
+}
 
-ALLEGRO_DIALOG_FUNC(ALLEGRO_MENU *, al_get_display_menu, (ALLEGRO_DISPLAY *display));
-ALLEGRO_DIALOG_FUNC(bool, al_set_display_menu, (ALLEGRO_DISPLAY *display, ALLEGRO_MENU *menu));
-ALLEGRO_DIALOG_FUNC(bool, al_popup_menu, (ALLEGRO_MENU *popup, ALLEGRO_DISPLAY *display));
-ALLEGRO_DIALOG_FUNC(ALLEGRO_MENU *, al_remove_display_menu, (ALLEGRO_DISPLAY *display));
 
-ALLEGRO_DIALOG_FUNC(uint32_t, al_get_allegro_native_dialog_version, (void));
+func DefaultMenuEventSource() * EventSource {
+    return wrapEventSourceRaw(C.al_get_default_menu_event_source())
+}
 
-enum {
-   ALLEGRO_FILECHOOSER_FILE_MUST_EXIST = 1,
-   ALLEGRO_FILECHOOSER_SAVE            = 2,
-   ALLEGRO_FILECHOOSER_FOLDER          = 4,
-   ALLEGRO_FILECHOOSER_PICTURES        = 8,
-   ALLEGRO_FILECHOOSER_SHOW_HIDDEN     = 16,
-   ALLEGRO_FILECHOOSER_MULTIPLE        = 32
-};
+func (menu * Menu) EnableEventSource() * EventSource {
+    return wrapEventSourceRaw(C.al_enable_menu_event_source(menu.toC()))
+}
 
-enum {
-   ALLEGRO_MESSAGEBOX_WARN             = 1<<0,
-   ALLEGRO_MESSAGEBOX_ERROR            = 1<<1,
-   ALLEGRO_MESSAGEBOX_OK_CANCEL        = 1<<2,
-   ALLEGRO_MESSAGEBOX_YES_NO           = 1<<3,
-   ALLEGRO_MESSAGEBOX_QUESTION         = 1<<4
-};
 
-enum {
-   ALLEGRO_TEXTLOG_NO_CLOSE            = 1<<0,
-   ALLEGRO_TEXTLOG_MONOSPACE           = 1<<1
-};
+func (menu * Menu) DisableEventSource() {
+    C.al_disable_menu_event_source(menu.toC())
+}
 
-enum {
-   ALLEGRO_EVENT_NATIVE_DIALOG_CLOSE   = 600,
-   ALLEGRO_EVENT_MENU_CLICK            = 601
-};
+func (disp * Display) Menu() * Menu {
+    return wrapMenuRaw(C.al_get_display_menu(disp.toC()))
+}
 
-enum {
-   ALLEGRO_MENU_ITEM_ENABLED            = 0,
-   ALLEGRO_MENU_ITEM_CHECKBOX           = 1,
-   ALLEGRO_MENU_ITEM_CHECKED            = 2,
-   ALLEGRO_MENU_ITEM_DISABLED           = 4
-};
+func (disp * Display) SetMenu(menu * Menu) bool {
+    return bool(C.al_set_display_menu(disp.toC(), menu.toC()))
+}
 
-*/
+func (disp * Display) PopupMenu(menu * Menu) bool {
+    return bool(C.al_popup_menu(menu.toC(), disp.toC()))
+}
+
+func (menu * Menu) Popup(disp * Display) bool {
+    return bool(C.al_popup_menu(menu.toC(), disp.toC()))
+}
+
+
+func (disp * Display) RemoveMenu() * Menu {
+    return wrapMenuRaw(C.al_remove_display_menu(disp.toC()))
+}
+
+func NativeDialogVersion() uint32 {
+    return uint32(C.al_get_allegro_native_dialog_version())
+}
+

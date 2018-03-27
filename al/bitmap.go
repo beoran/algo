@@ -94,6 +94,18 @@ func (self *Bitmap) Height() int {
     return int(C.al_get_bitmap_height(self.handle))
 }
 
+// Gets the width of the bitmap as a float32.
+func (bmp *Bitmap) Widthf() float32 {
+    return float32(bmp.Width())
+}
+
+// Gets the height of the bitmap as a float32.
+func (bmp *Bitmap) Heightf() float32 {
+    return float32(bmp.Height())
+}
+
+
+
 // Gets the format of the bitmap.
 func (self *Bitmap) Format() int {
     return int(C.al_get_bitmap_format(self.handle))

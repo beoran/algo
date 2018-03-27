@@ -919,6 +919,11 @@ func (self *File) Close() {
     self.handle = nil
 }
 
+// Returns the low level handle of the file 
+func (self *File) toC() * C.ALLEGRO_FILE {
+    return self.handle
+}
+
 // Wraps an ALLEGRO_FILE into a File
 func wrapFileRaw(file *C.ALLEGRO_FILE) *File {
     if file == nil {

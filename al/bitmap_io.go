@@ -25,5 +25,24 @@ func (bmp * Bitmap) Save(name string) bool {
     return bool(C.al_save_bitmap(cname, bmp.toC()))
 }
 
+func (file * File) LoadBitmap(ident string) * Bitmap {
+    var cident  *C.char = nil
+    if ident != "" {
+        cident = cstr(ident)
+        defer cstrFree(cident)
+    }
+    
+    return wrapBitmap(C.al_load_bitmap_f(file.toC(), cident))
+}
+
+func (file * File) SaveBitmap(ident string, bmp * Bitmap) bool {
+    var cident  *C.char = nil
+    if ident != "" { 
+        cident = cstr(ident)
+        defer cstrFree(cident)
+    }
+    
+    return bool(C.al_save_bitmap_f(file.toC(), cident, bmp.toC()))
+}
 
 
