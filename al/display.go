@@ -199,43 +199,6 @@ func (self *Display) Flip() {
     C.al_flip_display()
 }
 
-// Color type
-type Color C.ALLEGRO_COLOR
-
-// Convert from
-func wrapColor(color C.ALLEGRO_COLOR) Color {
-    return Color(color)
-}
-
-// Convert to C
-func (self Color) toC() C.ALLEGRO_COLOR {
-    return C.ALLEGRO_COLOR(self)
-}
-
-// Creates a new color 
-func CreateColor(r, g, b, a float32) Color {
-    return Color{C.float(r), C.float(g), C.float(b), C.float(a)}
-}
-
-// Returns the R component of the color self.
-func (self Color) R() float32 {
-    return float32(self.r)
-}
-
-// Returns the G component of the color self.
-func (self Color) G() float32 {
-    return float32(self.g)
-}
-
-// Returns the B component of the color self.
-func (self Color) B() float32 {
-    return float32(self.b)
-}
-
-// Returns the A component of the color self.
-func (self Color) A() float32 {
-    return float32(self.a)
-}
 
 // Fills the current active display with a color
 func ClearToColor(color Color) {
