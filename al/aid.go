@@ -112,6 +112,40 @@ func cui16(f int) C.uint16_t {
     return C.uint16_t(f)
 }
 
+//Converts an array of C strings to a slice of Go strings
+func GoStrings(argc C.int, argv **C.char) []string {
+    length := int(argc)
+    tmpslice := (*[1 << 30]*C.char)(unsafe.Pointer(argv))[:length:length]
+    gostrings := make([]string, length)
+    for i, s := range tmpslice {
+        gostrings[i] = C.GoString(s)
+    }
+    return gostrings
+}
+
+//Converts an array of go strings to an array of C strings and a length 
+func CStrings(args []string) (argc C.int, argv **C.char) {
+    length := len(args)
+    argv = (**C.char)(malloc(length * int(unsafe.Sizeof(*argv))))
+    tmpslice := (*[1 << 30]*C.char)(unsafe.Pointer(argv))[:length:length]
+    for i, s := range args {
+        tmpslice[i] = cstr(s)
+    }
+    return argc, argv
+}
+
+// frees the data allocated by Cstrings
+func CStringsFree(argc C.int, argv **C.char) {
+    length := int(argc)
+    tmpslice := (*[1 << 30]*C.char)(unsafe.Pointer(argv))[:length:length]
+    for _, s := range tmpslice {
+        cstrFree(s)
+    }
+    free(unsafe.Pointer(argv))
+}
+
+
+
 
 /* This is the usual boilerplate for wrapping C types through a handle
 

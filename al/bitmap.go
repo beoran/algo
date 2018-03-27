@@ -10,6 +10,7 @@ package al
 import "C"
 
 import "runtime"
+import "unsafe"
 
 // Type that wraps a Bitmap
 type Bitmap struct {
@@ -193,6 +194,20 @@ func (self *Bitmap) Parent() *Bitmap {
     return wrapBitmapRaw(C.al_get_parent_bitmap(self.handle))
 }
 
+// Gets the Returns the X position within the parent of a sub bitmap
+func (bmp *Bitmap) SubX() int {
+    return int(C.al_get_bitmap_x(bmp.handle))
+}
+// Gets the Returns the Y position within the parent of a sub bitmap
+func (bmp *Bitmap) SubY() int {
+    return int(C.al_get_bitmap_y(bmp.handle))
+}
+
+// Changes the parent, size and position of a sub bitmap 
+func (bmp *Bitmap) Reparent(parent * Bitmap, x, y, w, h int) {
+    C.al_reparent_bitmap(bmp.handle, parent.handle, C.int(x), C.int(y), C.int(w), C.int(h))
+}
+
 // Returns a raw clone of the bitmap, that will not be automatically 
 // destroyed.
 func (self *Bitmap) CloneRaw() *Bitmap {
@@ -214,4 +229,55 @@ func (self *Bitmap) Convert() {
 // to ensure the blitting goes fast. 
 func ConvertMemoryBitmaps() {
     C.al_convert_memory_bitmaps()
+}
+
+const (
+    LOCK_READWRITE = C.ALLEGRO_LOCK_READWRITE
+    LOCK_READONLY  = C.ALLEGRO_LOCK_READONLY
+    LOCK_WRITEONLY = C.ALLEGRO_LOCK_WRITEONLY
+)
+
+type LockedRegion = C.ALLEGRO_LOCKED_REGION
+
+// TODO: Provide better access to the data member if needed
+func (lk * LockedRegion) dataPointer() unsafe.Pointer {
+    return unsafe.Pointer(lk.data)
+}
+
+func (lk * LockedRegion) Format() int {
+    return int(lk.format)
+}
+
+func (lk * LockedRegion) Pitch() int {
+    return int(lk.pitch)
+}
+
+func (lk * LockedRegion) PixelSize() int {
+    return int(lk.pixel_size)
+}
+
+func (bmp * Bitmap) Lock(format, flags int) *LockedRegion {
+    return (*LockedRegion)(C.al_lock_bitmap(bmp.handle, C.int(format), C.int(flags)))
+}
+
+func (bmp * Bitmap) LockRegion(x, y, width, height, format, flags int) *LockedRegion {
+    return (*LockedRegion)(C.al_lock_bitmap_region(bmp.handle, 
+    C.int(x), C.int(y), C.int(width), C.int(height), C.int(format), C.int(flags)))
+}
+
+func (bmp * Bitmap) LockBlocked(flags int) *LockedRegion {
+    return (*LockedRegion)(C.al_lock_bitmap_blocked(bmp.handle, C.int(flags)))
+}
+
+func (bmp * Bitmap) LockRegionBlocked(x, y, width, height, flags int) *LockedRegion {
+    return (*LockedRegion)(C.al_lock_bitmap_region_blocked(bmp.handle, 
+    C.int(x), C.int(y), C.int(width), C.int(height), C.int(flags)))
+}
+
+func (bmp * Bitmap) Unlock(){
+    C.al_unlock_bitmap(bmp.handle)
+}
+
+func (bmp * Bitmap) Locked() bool {
+    return bool(C.al_is_bitmap_locked(bmp.handle))
 }

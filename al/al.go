@@ -8,6 +8,7 @@ package al
 #include <allegro5/allegro.h>
 #include <allegro5/events.h>
 #include "helpers.h"
+#include "callbacks.h"
 */
 import "C"
 
@@ -32,7 +33,7 @@ const (
     DATE_STR        =  C.ALLEGRO_DATE_STR
     VERSION_INT     =  ((VERSION << 24) | (SUB_VERSION << 16) |
                         (WIP_VERSION << 8) | RELEASE_NUMBER | UNSTABLE_BIT)
-)
+ )
 
 // Converts bool to Allegro's C.bool
 func b2cb(res bool) C.bool {
@@ -241,8 +242,13 @@ func InhibitScreensaver(inhibit bool) bool {
     return bool(C.al_inhibit_screensaver(C.bool(inhibit)))
 }
 
-/// XXX How to wrap this and is it needed????
-// AL_FUNC(int, al_run_main, (int argc, char **argv, int (*)(int, char **)));
+// Might be needed on OSX.
+func RunMain(args []string, callback RunMainCallback, data interface{}) int {
+    runMain.fn   = callback
+    runMain.data = data
+    argc, argv := CStrings(args) ; defer CStringsFree(argc, argv)
+    return int(C.al_run_main(argc, argv, (*[0]byte)(C.go_run_main_callback)))
+}
 
 /** Allegro has it's own string type. While it's nice, it's 
 not needed in Go, so I will just wrap the basic conversion functions. */
@@ -304,8 +310,8 @@ func USTRP(str *string) *USTR {
 
 // Allegro's timer functions 
 
-// Gets the time the app is running in seconds 
-func GetTime() float64 {
+// Gets the time since allegro was initialized in seconds 
+func Time() float64 {
     return float64(C.al_get_time())
 }
 
@@ -766,6 +772,13 @@ AL_FUNC(bool, al_wait_for_event_until, (ALLEGRO_EVENT_QUEUE *queue,
                                         ALLEGRO_EVENT *ret_event,
                                         ALLEGRO_TIMEOUT *timeout));
 */
+
+type Timeout = C.ALLEGRO_TIMEOUT
+
+func (tout * Timeout) Init(seconds float64) {
+    C.al_init_timeout(tout, C.double(seconds))
+}
+
 
 // Precise (?) Timer 
 type Timer struct {

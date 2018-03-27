@@ -68,3 +68,11 @@ func (bmp * Bitmap) DrawTintedScaledRotated(color Color, cx, cy, dx, dy, xscale,
         C.float(xscale), C.float(yscale), C.float(angle), C.int(flags))
 }
 
+func (bmp * Bitmap) DrawTintedScaledRotatedRegion(sx, sy, sw, sh float32, color Color, cx, cy, dx, dy, xscale, yscale, angle float32, flags int) {
+    C.al_draw_tinted_scaled_rotated_bitmap_region(bmp.handle, 
+        C.float(sx), C.float(sy), C.float(sw), C.float(sh),
+        color.toC(),  C.float(cx), C.float(cy),
+        C.float(dx), C.float(dy), 
+        C.float(xscale), C.float(yscale), C.float(angle), C.int(flags))
+}
+
