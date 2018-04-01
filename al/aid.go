@@ -131,6 +131,7 @@ func CStrings(args []string) (argc C.int, argv **C.char) {
     for i, s := range args {
         tmpslice[i] = cstr(s)
     }
+    argc = C.int(length)
     return argc, argv
 }
 

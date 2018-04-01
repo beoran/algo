@@ -23,7 +23,7 @@ const (
 )
 
 // Converts wrapper Event pointer to C Allegro audio recorder event
-func (self *Event) AUDIO_RECORDER_EVENT() *C.ALLEGRO_AUDIO_RECORDER_EVENT {
+func (self *EventUnion) AUDIO_RECORDER_EVENT() *C.ALLEGRO_AUDIO_RECORDER_EVENT {
     return (*C.ALLEGRO_AUDIO_RECORDER_EVENT)(self.toPointer())
 }
 
@@ -906,67 +906,6 @@ func LoadAudioStream(filename string, buffer_count, samples uint) *AudioStream {
     return LoadAudioStreamRaw(filename, buffer_count, samples).SetDestroyFinalizer()
 }
 
-// Allegro's own file for cross platform and physfs reasons.
-type File struct {
-    handle *C.ALLEGRO_FILE
-}
-
-// Closes the Allegro file
-func (self *File) Close() {
-    if self.handle != nil {
-        C.al_fclose(self.handle)
-    }
-    self.handle = nil
-}
-
-// Returns the low level handle of the file 
-func (self *File) toC() * C.ALLEGRO_FILE {
-    return self.handle
-}
-
-// Wraps an ALLEGRO_FILE into a File
-func wrapFileRaw(file *C.ALLEGRO_FILE) *File {
-    if file == nil {
-        return nil
-    }
-    return &File{file}
-}
-
-// Opens an Allegro File
-func openFile(filename, mode string) *C.ALLEGRO_FILE {
-    cfilename := cstr(filename)
-    defer cstrFree(cfilename)
-    cmode := cstr(mode)
-    defer cstrFree(cmode)
-    return C.al_fopen(cfilename, cmode)
-}
-
-// Sets up a finalizer for this File that calls Close()
-func (self *File) SetCloseFinalizer() *File {
-    if self != nil {
-        runtime.SetFinalizer(self, func(me *File) { me.Close() })
-    }
-    return self
-}
-
-// Wraps a file and sets up a finalizer that calls Destroy()
-func wrapFile(data *C.ALLEGRO_FILE) *File {
-    self := wrapFileRaw(data)
-    return self.SetCloseFinalizer()
-}
-
-// Opens a file with no finalizer set
-func OpenFileRaw(filename, mode string) *File {
-    self := openFile(filename, mode)
-    return wrapFileRaw(self)
-}
-
-// Opens a file with a Close finalizer set
-func OpenFile(filename, mode string) *File {
-    self := OpenFileRaw(filename, mode)
-    return self.SetCloseFinalizer()
-}
-
 // Loads a Sample from a File. Filetype is a file extension that identifies the file type 
 // like (.wav, .ogg, etc))
 func (self *File) loadSample(filetype string) *C.ALLEGRO_SAMPLE {
@@ -1093,8 +1032,8 @@ func wrapAudioRecorderEvent(event *C.ALLEGRO_AUDIO_RECORDER_EVENT) *AudioRecorde
     return (*AudioRecorderEvent)(event)
 }
 
-// Converts an event into an allegro recorder event 
-func (self *Event) AudioRecorderEvent() *AudioRecorderEvent {
+// Converts an event unio into an allegro recorder event 
+func (self *EventUnion) AudioRecorderEvent() *AudioRecorderEvent {
     return wrapAudioRecorderEvent(C.al_get_audio_recorder_event(self.toC()))
 }
 

@@ -8,6 +8,7 @@ package al
 import "C"
 
 import "runtime"
+import "unsafe"
 
 // Usful regexp for KATE:  ALLEGRO_([A-Z0-9_]+)(.*) -> \1 = C.ALLEGRO_\1
 
@@ -118,34 +119,6 @@ func wrapDisplay(handle *C.ALLEGRO_DISPLAY) *Display {
     return self
 }
 
-// Display mode info.
-type DisplayMode C.ALLEGRO_DISPLAY_MODE
-
-// Converts display mode to C display mode 
-func (self *DisplayMode) toC() *C.ALLEGRO_DISPLAY_MODE {
-    return (*C.ALLEGRO_DISPLAY_MODE)(self)
-}
-
-// Returns the width of the display mode self.
-func (self *DisplayMode) Width() int {
-    return int(self.width)
-}
-
-// Returns the height of the display mode self.
-func (self *DisplayMode) Height() int {
-    return int(self.height)
-}
-
-// Returns the format of the display mode self.
-func (self *DisplayMode) Format() int {
-    return int(self.format)
-}
-
-// Returns the refresh rate of the display mode self.
-func (self *DisplayMode) RefreshRate() int {
-    return int(self.refresh_rate)
-}
-
 // Monitor info
 type MonitorInfo C.ALLEGRO_MONITOR_INFO
 
@@ -205,6 +178,11 @@ func ClearToColor(color Color) {
     C.al_clear_to_color(color.toC())
 }
 
+// Clears the depth buffer of the active display
+func ClearDepthBuffer(z float32) {
+    C.al_clear_depth_buffer(C.float(z))
+}
+
 // Draws a pixel on the active display at the given location 
 // with the given color
 func DrawPixel(x, y float32, color Color) {
@@ -244,6 +222,11 @@ func (self *Display) RefreshRate() int {
 // Gets the display flags of the display
 func (self *Display) DisplayFlags() int {
     return int(C.al_get_display_flags(self.handle))
+}
+
+// Gets the orientation of the display
+func (self *Display) Orientation() int {
+    return int(C.al_get_display_orientation(self.handle))
 }
 
 // Sets a dispay flag on the display
@@ -286,7 +269,7 @@ func TargetBitmap() *Bitmap {
     return wrapBitmapRaw(C.al_get_target_bitmap())
 }
 
-// Must be called to aknowledge a RESIZE event
+// Must be called to acknowledge a RESIZE event
 func (self *Display) AcknowledgeResize() bool {
     return cb2b(C.al_acknowledge_resize(self.handle))
 }
@@ -296,29 +279,9 @@ func UpdateDisplayRegion(x, y, width, height int) {
     C.al_update_display_region(C.int(x), C.int(y), C.int(width), C.int(height))
 }
 
-// Returns true of the bitmap is compatible with the currebt display, false if not. 
+// Returns true of the bitmap is compatible with the current display, false if not. 
 func (bitmap *Bitmap) IsCompatibleBitmap() bool {
     return cb2b(C.al_is_compatible_bitmap(bitmap.handle))
-}
-
-// Returns the number of display modes available to Allegro
-func NumDisplayModes() int {
-    return int(C.al_get_num_display_modes())
-}
-
-// Returns the index'th display mode. Pass in a DisplayMode struct to store the display
-// mode info in. 
-func (self *DisplayMode) Get(index int) *DisplayMode {
-    return (*DisplayMode)(C.al_get_display_mode(C.int(index), self.toC()))
-}
-
-// Gets display mode info for the index'th display mode
-func GetDisplayMode(index int) *DisplayMode {
-    var mode DisplayMode
-    if (&mode).Get(index) != nil {
-        return &mode
-    }
-    return nil
 }
 
 // Waits for the vertical retrace of the monitor to lessen tearing.
@@ -329,13 +292,41 @@ func WaitForVsync() {
 // Gets the event source of the display to registeron an event queue 
 // with RegisterEventSource.
 func (self *Display) GetEventSource() *EventSource {
-    return (*EventSource)(C.al_get_display_event_source(self.handle))
+    return wrapEventSourceRaw(C.al_get_display_event_source(self.handle))
 }
 
 // Sets the display icon the window manager should use for the display window
 func (self *Display) SetDisplayIcon(bitmap *Bitmap) {
     C.al_set_display_icon(self.handle, bitmap.handle)
 }
+
+
+// Converts an array of Bitmaps to an array of ALLEGRO_BITMAPS  and a length 
+func CBitmaps(bitmaps []*Bitmap) (count C.int, cbitmaps **C.ALLEGRO_BITMAP) {
+    length := len(bitmaps)
+    cbitmaps   = (**C.ALLEGRO_BITMAP)(malloc(length * int(unsafe.Sizeof(*cbitmaps))))
+    tmpslice := (*[1 << 30]*C.ALLEGRO_BITMAP)(unsafe.Pointer(cbitmaps))[:length:length]
+    for i, b := range bitmaps {
+        tmpslice[i] = b.handle
+    }
+    
+    count = C.int(length)
+    return count, cbitmaps 
+}
+
+// frees the data allocated by Cstrings
+func CBitmapsFree(count C.int, cbitmaps **C.ALLEGRO_BITMAP) {
+    free(unsafe.Pointer(cbitmaps))
+}
+
+
+// Sets the display icons the window manager should use for the display window
+func (self *Display) SetDisplayIcons(bitmaps []*Bitmap) {
+    count , cbitmaps := CBitmaps(bitmaps)   
+    defer CBitmapsFree(count, cbitmaps) 
+    C.al_set_display_icons(self.handle, count, cbitmaps)
+}
+
 
 // Gets the number of available video adapters (I.E. grapic cards)
 func NumVideoAdapters() int {
@@ -395,11 +386,37 @@ func (self *Display) SetWindowPosition(x, y int) {
     C.al_set_window_position(self.handle, C.int(x), C.int(y))
 }
 
+// Constrains the window of a display. The environment might ignore the restraints.
+// 0 means no restraint.
+func (self *Display) SetWindowConstraints(min_w, min_h, max_w, max_h int) {
+    C.al_set_window_constraints(self.handle, C.int(min_w), C.int(min_h), C.int(max_w), C.int(max_h))
+}
+
+// Returns the current constraints of the windowed display
+func (self *Display) WindowContraints() (min_w, min_h, max_w, max_h int) {
+    var cmin_w, cmin_h, cmax_w, c_max_h C.int
+    C.al_get_window_constraints(self.handle, &cmin_w, &cmin_h, &cmax_w, &c_max_h)
+    return int(cmin_w), int(cmin_h), int(cmax_w), int(c_max_h)
+}
+
+
+// Gets the title for displays that will be newly created
+func NewWindowTitle() string {
+    return C.GoString(C.al_get_new_window_title())
+}
+
 // Sets the title of the windowed display
-func (self *Display) SetTitle(str string) {
+func (self *Display) SetWindowTitle(str string) {
     cstr := cstr(str)
     defer cstrFree(cstr)
     C.al_set_window_title(self.handle, cstr)
+}
+
+// Sets the title of newly created windowed displays
+func SetNewWindowTitle(str string) {
+    cstr := cstr(str)
+    defer cstrFree(cstr)
+    C.al_set_new_window_title(cstr)
 }
 
 // Sets a display option to be used when a new display is created
@@ -418,12 +435,19 @@ func (self *Display) DisplayOption(option int) int {
 }
 
 // Allows to speed up drawing by holding the display . Only bitmap functions and font 
-// drawing, as well as tranformations shouldbe done until the hold is released
+// drawing, as well as tranformations should be used until the hold is released
 func HoldBitmapDrawing(hold bool) {
     C.al_hold_bitmap_drawing(b2cb(hold))
 }
 
 // Returns whether or not the bitmap drawing was held
 func IsBitmapDrawingHeld() bool {
-    return cb2b(C.al_is_bitmap_drawing_held())
+    return bool(C.al_is_bitmap_drawing_held())
 }
+
+/* UNSTABLE API
+func (disp * Display) BackupDirtyBitmaps() {
+    C.backup_dirty_bitmaps(disp.handle)
+}
+*/
+

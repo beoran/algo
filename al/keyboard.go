@@ -213,3 +213,13 @@ const (
     KEYMOD_ACCENT3    = C.ALLEGRO_KEYMOD_ACCENT3
     KEYMOD_ACCENT4    = C.ALLEGRO_KEYMOD_ACCENT4
 )
+
+type Keyboard struct {
+    handle * C.ALLEGRO_KEYBOARD
+}
+
+func wrapKeyboardRaw(kb * C.ALLEGRO_KEYBOARD) * Keyboard {
+    res := &Keyboard{kb}
+    return res
+}
+
