@@ -237,7 +237,12 @@ func TestDisplayMode(t *testing.T) {
     defer UninstallSystem()
     modes := DisplayModes()
     for _, m := range modes {
-        t.Logf("Display mode: %\ns", m.String());
+        t.Logf("Display mode: %s\n", m.String());
+    }
+    
+    monitors := GetAllMonitorInfo() 
+    for _, m := range monitors {
+        t.Logf("Monitor : %s\n", m.String());
     }
 }
 

@@ -223,3 +223,21 @@ func wrapKeyboardRaw(kb * C.ALLEGRO_KEYBOARD) * Keyboard {
     return res
 }
 
+
+type KeyboardState C.ALLEGRO_KEYBOARD_STATE
+
+func (ks * KeyboardState) toC() * C.ALLEGRO_KEYBOARD_STATE {
+    return (*C.ALLEGRO_KEYBOARD_STATE)(ks)
+}
+
+
+func GetKeyboardState() * KeyboardState {
+    ks := &KeyboardState{}
+    C.al_get_keyboard_state(ks.toC());
+    return ks
+}
+
+func (ks * KeyboardState) KeyDown(keycode int) bool {
+    return bool(C.al_key_down(ks.toC(), C.int(keycode)))
+}
+

@@ -9,6 +9,7 @@ import "C"
 
 import "runtime"
 import "unsafe"
+import "fmt"
 
 // Usful regexp for KATE:  ALLEGRO_([A-Z0-9_]+)(.*) -> \1 = C.ALLEGRO_\1
 
@@ -350,6 +351,20 @@ func GetMonitorInfo(index int) *MonitorInfo {
         return &info
     }
     return nil
+}
+
+func (mi * MonitorInfo) String() string {
+    return fmt.Sprintf("%d %d %d %d", mi.X1(), mi.Y1(), mi.X2(), mi.Y2())
+}
+
+// Gets all available monitors and their info
+func GetAllMonitorInfo() []*MonitorInfo {
+    count := NumVideoAdapters();
+    info := make([]*MonitorInfo, count)
+    for i := 0 ; i < count; i ++ {
+        info[i] = GetMonitorInfo(i)
+    }
+    return info
 }
 
 // Returns the number of the display adapter where new dsplays will be created
