@@ -89,9 +89,9 @@ func TestGetTimeRest(t *testing.T) {
     InstallSystem()
     defer UninstallSystem()
     rest := 0.123
-    t1 := GetTime()
+    t1 := Time()
     Rest(rest)
-    t2 := GetTime()
+    t2 := Time()
     del := t2 - t1 - rest
     if (del > 0.001) || (del < -0.001) {
         t.Errorf("Rest/GetTime for %f not precise %f %f %f", rest, t1, t2, del)
@@ -190,7 +190,7 @@ func makeDisplay() *Display {
     display := CreateDisplay(SCREEN_W, SCREEN_H)
     display.Resize(SCREEN_W, SCREEN_H)
     if !(*fullscreen) {
-        display.SetTitle("Algo test window")
+        display.SetWindowTitle("Algo test window")
     }
     return display
 }
@@ -229,6 +229,16 @@ func TestBasicDisplay(t *testing.T) {
     FlipDisplay()
     display.Destroy()
     Rest(1.0)
+}
+
+// Test full screen display modes functions 
+func TestDisplayMode(t *testing.T) {
+    InstallSystem()
+    defer UninstallSystem()
+    modes := DisplayModes()
+    for _, m := range modes {
+        t.Logf("Display mode: %\ns", m.String());
+    }
 }
 
 // Test some font functions 
