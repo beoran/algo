@@ -9,7 +9,6 @@ package al
 #include <allegro5/allegro.h>
 #include <allegro5/file.h>
 #include "helpers.h"
-#include "callbacks.h"
 */
 import "C"
 

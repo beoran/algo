@@ -245,4 +245,12 @@ func UngrabMouse() bool {
     return cb2b(C.al_ungrab_mouse())
 }
 
+func SetMouseWheelPrecision(precision int) {
+    C.al_set_mouse_wheel_precision(C.int(precision))
+}
+
+func MouseWheelPrecision() int {
+    return int(C.al_get_mouse_wheel_precision())
+}
+
 

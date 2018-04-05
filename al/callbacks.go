@@ -4,7 +4,6 @@ package al
 #include <stdlib.h>
 #include <allegro5/allegro.h>
 #include "helpers.h"
-#include "callbacks.h"
 */
 import "C"
 
@@ -45,39 +44,18 @@ func go_run_main_callback(argc C.int, argv ** C.char) C.int {
     return C.int(runMain.fn(args, runMain.data))
 }
 
+type ThreadCallbackFunction func(*Thread, unsafe.Pointer) unsafe.Pointer
 
-// generic function pointer caller
-
-var CallbackInt func() int = nil
-
-//export go_generic_callback_int
-func go_generic_callback_int() int {
-    if CallbackInt != nil {
-        return CallbackInt()
-    }
-    return 0
-}
-
-type CallbackFunction func() int
-
-type callbackData struct {
-    fn   CallbackFunction
+type threadCallbackData struct {
+    fn   ThreadCallbackFunction
     data unsafe.Pointer
 }
 
-// the function below is the C callback that will be given to the 
-// C api that needs a callback. It uses a callback context with a 
-// Go function pointer in it to call that go function.
-
-//export go_take_callback_callback
-func go_take_callback_callback(context unsafe.Pointer) int {
-    cbd := (*callbackData)(context)
-    fn := cbd.fn
-    return fn()
+//export go_create_thread_callback
+func go_create_thread_callback(thread * C.ALLEGRO_THREAD, arg unsafe.Pointer) unsafe.Pointer {
+    cbd := (*threadCallbackData)(arg)
+    fn  := cbd.fn
+    res := fn(wrapThreadRaw(thread), cbd.data)
+    return unsafe.Pointer(res)
 }
 
-// Finally wrap the C callback caller function.
-func TakeCallback(fn CallbackFunction) int {
-    ctx := unsafe.Pointer(&callbackData{fn, nil})
-    return int(C.go_take_callback(ctx))
-}

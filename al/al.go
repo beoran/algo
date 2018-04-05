@@ -194,7 +194,6 @@ AL_FUNC(bool, al_make_path_canonical, (ALLEGRO_PATH *path));
 
 // Not wrapped yet: 
 // AL_FUNC(SYSTEM *, al_get_system_driver, (void));
-// AL_FUNC(CONFIG *, al_get_system_config, (void));
 
 const (
     RESOURCES_PATH          = C.ALLEGRO_RESOURCES_PATH

@@ -106,6 +106,16 @@ func cd(f float64) C.double {
     return C.double(f)
 }
 
+// Sometimes I need many floats..
+func cf2(f1, f2 float32) (C.float, C.float) {
+    return C.float(f1), C.float(f2)
+}
+
+// Sometimes I need many floats..
+func cf3(f1, f2, f3 float32) (C.float, C.float, C.float) {
+    return C.float(f1), C.float(f2), C.float(f3)
+}
+
 
 // this is too for laziness, but it's quite handy
 func cui16(f int) C.uint16_t {
@@ -142,6 +152,41 @@ func CStringsFree(argc C.int, argv **C.char) {
     for _, s := range tmpslice {
         cstrFree(s)
     }
+    free(unsafe.Pointer(argv))
+}
+
+//Converts an array of go ints to an array of C ints and a length 
+func CInts(args []int) (argc C.int, argv *C.int) {
+    length := len(args)
+    argv = (*C.int)(malloc(length * int(unsafe.Sizeof(argv))))
+    tmpslice := (*[1 << 30]C.int)(unsafe.Pointer(argv))[:length:length]
+    for i, v := range args {
+        tmpslice[i] = C.int(v)
+    }
+    argc = C.int(length)
+    return argc, argv
+}
+
+// frees the data allocated by Cints
+func CIntsFree(argc C.int, argv *C.int) {
+    free(unsafe.Pointer(argv))
+}
+
+
+//Converts an array of go float32 to an array of C float and a length 
+func CFloats(args []float32) (argc C.int, argv *C.float) {
+    length := len(args)
+    argv = (*C.float)(malloc(length * int(unsafe.Sizeof(*argv))))
+    tmpslice := (*[1 << 30]C.float)(unsafe.Pointer(argv))[:length:length]
+    for i, v := range args {
+        tmpslice[i] = C.float(v)
+    }
+    argc = C.int(length)
+    return argc, argv
+}
+
+// frees the data allocated by Cints
+func CFloatsFree(argc C.int, argv *C.float) {
     free(unsafe.Pointer(argv))
 }
 
