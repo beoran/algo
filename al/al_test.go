@@ -15,7 +15,7 @@ const TEST_FULLSCREEN = true
 var fullscreen = flag.Bool("fullscreen", false, "Run fullscreen or not")
 
 func TestGetAllegroVersion(t *testing.T) {
-    version := GetAllegroVersion()
+    version := AllegroVersion()
     if version != expected_version {
         t.Errorf("unexpected version of Allegro: %d in stead of %d!",
             version, expected_version)
@@ -102,7 +102,7 @@ func TestGetTimeRest(t *testing.T) {
 func TestPath(t *testing.T) {    
     InstallSystem()
     defer UninstallSystem()    
-    path := GetStandardPath(TEMP_PATH)
+    path := StandardPath(TEMP_PATH)
     str := path.String()
     tmp := "/tmp/"
     // special case for windows...
@@ -123,7 +123,7 @@ func TestGetInfo(t *testing.T) {
         t.Error("No video adapters found!")
     }
     for index := 0; index < nv; index++ {
-        info := GetMonitorInfo(index)
+        info := FindMonitorInfo(index)
         if info == nil {
             t.Errorf("Video adapter %d not found!", index)
             continue
@@ -149,28 +149,28 @@ func TestJoystick(t *testing.T) {
     defer UninstallSystem()
     InstallJoystick()
     defer UninstallJoystick()
-    num := GetNumJoysticks()
+    num := NumJoysticks()
     t.Logf("Found %d joysticks\n", num)
     for index := 0; index < num; index++ {
-        js := GetJoystick(index)
-        jsname := js.GetName()
-        sticks := js.GetNumSticks()
-        buttons := js.GetNumButtons()
+        js := FindJoystick(index)
+        jsname := js.Name()
+        sticks := js.NumSticks()
+        buttons := js.NumButtons()
         t.Logf("Joystick %s (nr %d) has %d sticks and %d buttons:\n",
             jsname, index, sticks, buttons)
         for sdex := 0; sdex < sticks; sdex++ {
-            axes := js.GetNumAxes(sdex)
-            sname := js.GetStickName(sdex)
-            sfname := js.GetStickFlagsName(sdex)
+            axes := js.NumAxes(sdex)
+            sname := js.StickName(sdex)
+            sfname := js.StickFlagsName(sdex)
             t.Logf("Stick %s (nr %d, %s) has %d axes: ", sname, sdex, sfname, axes)
             for adex := 0; adex < axes; adex++ {
-                aname := js.GetAxisName(sdex, adex)
+                aname := js.AxisName(sdex, adex)
                 t.Logf("%s (nr %d) ", aname, adex)
             }
         }
         t.Logf("\nButtons :")
         for bdex := 0; bdex < buttons; bdex++ {
-            bname := js.GetButtonName(bdex)
+            bname := js.ButtonName(bdex)
             t.Logf("%s (nr %d) ", bname, bdex)
         }
         t.Logf("\n")
@@ -240,7 +240,7 @@ func TestDisplayMode(t *testing.T) {
         t.Logf("Display mode: %s\n", m.String());
     }
     
-    monitors := GetAllMonitorInfo() 
+    monitors := AllMonitorInfo() 
     for _, m := range monitors {
         t.Logf("Monitor : %s\n", m.String());
     }

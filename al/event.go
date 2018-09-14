@@ -131,6 +131,11 @@ type TouchEvent     C.ALLEGRO_TOUCH_EVENT
 type UserEvent      C.ALLEGRO_USER_EVENT
 
 
+func (ev JoystickEvent        ) MarkJoystick()  { ; }
+func (ev KeyboardEvent        ) MarkKey()       { ; }
+func (ev MouseEvent           ) MarkMouse()     { ; }
+func (ev DisplayEvent         ) MarkDisplay() { ; }
+func (ev TouchEvent           ) MarkTouch() { ; }             
 
 // Converts wrapper EventUnion pointer to C Allegro event pointer
 func (self *EventUnion) toC() *C.ALLEGRO_EVENT {
@@ -142,8 +147,11 @@ func (self *EventUnion) toPointer() unsafe.Pointer {
     return unsafe.Pointer(self.toC())
 }
 
+func (self *EventUnion) toUP() unsafe.Pointer {
+    return unsafe.Pointer(self.toC())
+}
 
-// Converts wrapper EventUnion pointer to an EventUnion interface struct
+// Converts wrapper EventUnion pointer to an Event interface struct
 func (evun *EventUnion) Event() Event {
     ae := (*C.ALLEGRO_ANY_EVENT)(evun.toPointer())
     switch (C.int(ae._type)) {
@@ -156,7 +164,7 @@ func (evun *EventUnion) Event() Event {
         case EVENT_KEY_DOWN                 : fallthrough
         case EVENT_KEY_UP                   : 
             return (*KeyboardEvent)(evun.toPointer())
-
+ 
         case EVENT_MOUSE_AXES               : fallthrough    
         case EVENT_MOUSE_BUTTON_DOWN        : fallthrough    
         case EVENT_MOUSE_BUTTON_UP          : fallthrough    
@@ -177,6 +185,12 @@ func (evun *EventUnion) Event() Event {
         case EVENT_DISPLAY_SWITCH_OUT       : fallthrough    
         case EVENT_DISPLAY_ORIENTATION      :
             return (*DisplayEvent)(evun.toPointer())
+
+        case EVENT_TOUCH_BEGIN              : fallthrough
+        case EVENT_TOUCH_MOVE               : fallthrough
+        case EVENT_TOUCH_CANCEL             : fallthrough
+        case EVENT_TOUCH_END                :
+            return (*TouchEvent)(evun.toPointer())        
         default: break
     }
     
@@ -188,7 +202,6 @@ func (evun *EventUnion) Event() Event {
 }
 
 /* These wrappers implement the interface Event for all event types */
-
 
 func (ev AnyEvent     ) Type() int { return int(ev._type); }
 func (ev DisplayEvent ) Type() int { return int(ev._type); }
@@ -309,6 +322,20 @@ func (de DisplayEvent) Orientation() int {
     return int(de.orientation)
 }
 
+// Returns the ID of the joystick for the joystick event.
+func (je JoystickEvent) ID() int {
+    jsptr := je.id
+    for i := 0 ; i < NumJoysticks() ; i++ {
+        js := FindJoystick(i)
+        if js.handle == jsptr {
+            return i
+        }
+    }
+    /* shouln't happen, but... */
+    return 0xbad101
+}
+
+
 // Returns the stick number of the joystick event.
 func (je JoystickEvent) Stick() int {
     return int(je.stick)
@@ -324,9 +351,9 @@ func (je JoystickEvent) Button() int {
     return int(je.button)
 }
 
-// Returns the position of the joystick event.
-func (je JoystickEvent) Pos() int {
-    return int(je.pos)
+// Returns the position of the joystick axis during the event.
+func (je JoystickEvent) Pos() float32 {
+    return float32(je.pos)
 }
 
 // Returns the display that has emitted the keyboard event.
@@ -335,7 +362,7 @@ func (ke KeyboardEvent) Display() *Display {
 }
 
 // Returns the key code of the keyboard event. 
-func (ke KeyboardEvent) Keycode() int {
+func (ke KeyboardEvent) KeyCode() int {
     return int(ke.keycode)
 }
 
@@ -451,7 +478,7 @@ func (te TouchEvent) DY() int {
     return int(te.dy)
 }
 
-/* The safest way to use user events from GO is to use integer handles
+/* The safest way to use user events from Go is to use integer handles
  * as offsets into a GO-allocated map. */
 
 func (ue UserEvent) Data1Pointer() unsafe.Pointer { return unsafe.Pointer(uintptr(ue.data1));}
@@ -535,7 +562,7 @@ func (self *EventQueue) IsEmpty() bool {
 
 // Returns the next event from the event queue as well as a bool
 // to signify if an event was fetched sucessfully or not.
-func (self *EventQueue) GetNextEvent() (event *EventUnion, ok bool) {
+func (self *EventQueue) NextEvent() (event *EventUnion, ok bool) {
     event = &EventUnion{}
     ok = bool(C.al_get_next_event(self.handle, event.toC()))
     return event, ok

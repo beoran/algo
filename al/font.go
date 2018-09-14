@@ -40,6 +40,11 @@ func (self *Font) Destroy() {
     self.handle = nil
 }
 
+//Alias for Destroy, to make fonts implement the Closer interface
+func (font *Font) Close() {
+    font.Destroy()
+}
+
 // Wraps a C font into a go font
 func wrapFontRaw(data *C.ALLEGRO_FONT) *Font {
     if data == nil {
@@ -277,7 +282,7 @@ func ShutdownFontAddon() {
 }
 
 // Gets the allegro font addon version
-func GetAllegroFontVersion() uint32 {
+func AllegroFontVersion() uint32 {
     return (uint32)(C.al_get_allegro_font_version())
 }
 
@@ -354,7 +359,7 @@ func (font * Font) GlyphDimensions(color Color, cp int) (ok bool, bbx, bby, bbw,
 
 
 /*
-The fallback is a hassle, might be better to do this in Go.
+The callback is a hassle, might be better to do this in Go.
 ALLEGRO_FONT_FUNC(void, al_do_multiline_text, (const ALLEGRO_FONT *font,
    float max_width, const char *text,
    bool (*cb)(int line_num, const char *line, int size, void *extra),

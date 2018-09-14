@@ -160,7 +160,7 @@ func (sh * Shader) SetFloatVector(name string, nc int, f []float32) bool {
 }
 
 
-func GetDefaultShaderSource(pla ShaderPlatform, ty ShaderType) string {
+func DefaultShaderSource(pla ShaderPlatform, ty ShaderType) string {
     return C.GoString(C.al_get_default_shader_source(pla.toC(), ty.toC()))
 }
 

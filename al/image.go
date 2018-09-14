@@ -14,16 +14,16 @@ import "C"
 
 // Initializes the image format addon
 func InitImageAddon() bool {
-	return cb2b(C.al_init_image_addon())
+    return cb2b(C.al_init_image_addon())
 }
 
 // Shuts down the image format addon
 func ShutdownImageAddon() {
-	C.al_shutdown_image_addon()
+    C.al_shutdown_image_addon()
 }
 
 // Returns the version of the image loading addon.
 // Gets the allegro font addon version
-func GetAllegroImageVersion() uint32 {
-	return (uint32)(C.al_get_allegro_image_version())
+func AllegroImageVersion() uint32 {
+    return (uint32)(C.al_get_allegro_image_version())
 }

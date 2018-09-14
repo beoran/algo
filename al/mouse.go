@@ -163,11 +163,11 @@ func UninstallMouse() {
     C.al_uninstall_mouse()
 }
 
-func GetMouseNumButtons() uint {
+func MouseNumButtons() uint {
     return uint(C.al_get_mouse_num_buttons())
 }
 
-func GetMouseNumAxes() uint {
+func MouseNumAxes() uint {
     return uint(C.al_get_mouse_num_axes())
 }
 
@@ -187,7 +187,7 @@ func SetMouseAxis(axis, value int) bool {
     return cb2b(C.al_set_mouse_axis(ci(axis), ci(value)))
 }
 
-func AlGetMouseState() MouseState {
+func PollMouseState() MouseState {
     var state C.ALLEGRO_MOUSE_STATE
     C.al_get_mouse_state(&state)
     return wrapMouseState(state)
@@ -201,7 +201,7 @@ func (state * MouseState) Axis(axis int) int {
     return int(C.al_get_mouse_state_axis(state.toCPointer(), ci(axis)))
 }
 
-func GetMouseEventSource() * EventSource {
+func MouseEventSource() * EventSource {
     return wrapEventSourceRaw(C.al_get_mouse_event_source())
 }
 
@@ -229,7 +229,7 @@ func (display * Display) HideMouseCursor() bool {
     return cb2b(C.al_hide_mouse_cursor(display.toC()))
 }
 
-func GetMouseCursorPosition() (ok bool, x, y int) {
+func MouseCursorPosition() (ok bool, x, y int) {
     var cx, cy C.int
     ok = cb2b(C.al_get_mouse_cursor_position(&cx, &cy))
     x = int(cx)

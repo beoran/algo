@@ -53,7 +53,7 @@ func (self *JoystickState) toC() *C.ALLEGRO_JOYSTICK_STATE {
 // Gets the state of the axis for the given stick on the joystick.
 // returns 0.0 if the stick or axis are out of range. May return
 // garbage for nonexisting sticks and axes.
-func (self *JoystickState) GetStickAxis(stick, axis int) float32 {
+func (self *JoystickState) StickAxis(stick, axis int) float32 {
     if stick >= int(C._AL_MAX_JOYSTICK_STICKS) {
         return 0.0
     }
@@ -71,7 +71,7 @@ func (self *JoystickState) GetStickAxis(stick, axis int) float32 {
 
 // Gerts the state of the button with the given index on the joystick.
 // Will return -1 if the button is out of range.
-func (self *JoystickState) GetButton(button int) int {
+func (self *JoystickState) Button(button int) int {
     if button >= int(C._AL_MAX_JOYSTICK_BUTTONS) {
         return -1
     }
@@ -103,12 +103,12 @@ func IsJoystickInstalled() bool {
 }
 
 // Returns the amount of joysticks detected.
-func GetNumJoysticks() int {
+func NumJoysticks() int {
     return int(C.al_get_num_joysticks())
 }
 
 // Returns the joyn'th joystick, or nil if no such stick exists. 
-func GetJoystick(joyn int) *Joystick {
+func FindJoystick(joyn int) *Joystick {
     return wrapJoystick(C.al_get_joystick(C.int(joyn)))
 }
 
@@ -120,37 +120,37 @@ func (self *Joystick) IsActive() bool {
 }
 
 // Returns the name of the joystick self.
-func (self *Joystick) GetName() string {
+func (self *Joystick) Name() string {
     return gostr(C.al_get_joystick_name(self.handle))
 }
 
 // Returns the amount of sticks the joystick self has.
-func (self *Joystick) GetNumSticks() int {
+func (self *Joystick) NumSticks() int {
     return int(C.al_get_joystick_num_sticks(self.handle))
 }
 
 // Returns the joystick flags for the numbered stick on the joystick self.
-func (self *Joystick) GetStickFlags(stick int) int {
+func (self *Joystick) StickFlags(stick int) int {
     return int(C.al_get_joystick_stick_flags(self.handle, C.int(stick)))
 }
 
 // Returns true if the numbered stick on joystick self is digital, false if not.
 // Note that theoretically, a stick could be both digital and analog...
 func (self *Joystick) IsStickDigital(stick int) bool {
-    return (JOYFLAG_DIGITAL & self.GetStickFlags(stick)) == JOYFLAG_DIGITAL
+    return (JOYFLAG_DIGITAL & self.StickFlags(stick)) == JOYFLAG_DIGITAL
 }
 
 // Returns true if the numbered stick on joystick self is analog, false if not
 // Note that theoretically, a stick could be both digital and analog...
 func (self *Joystick) IsStickAnalog(stick int) bool {
-    return (JOYFLAG_ANALOGUE & self.GetStickFlags(stick)) == JOYFLAG_ANALOGUE
+    return (JOYFLAG_ANALOGUE & self.StickFlags(stick)) == JOYFLAG_ANALOGUE
 }
 
 // Returns a string that describes the joystick flags for the numbered stick 
 // on the joystick self. Will return "Analog" for an analog joystick, 
 // "Digital" for a digital joystick, "Hybrid" fo one that's both and 
 // "None" for one that's neither
-func (self *Joystick) GetStickFlagsName(stick int) string {
+func (self *Joystick) StickFlagsName(stick int) string {
     if self.IsStickAnalog(stick) {
         if self.IsStickDigital(stick) {
             return "Hybrid"
@@ -165,32 +165,32 @@ func (self *Joystick) GetStickFlagsName(stick int) string {
 }
 
 // Returns the name of the stick on the joystick self.
-func (self *Joystick) GetStickName(stick int) string {
+func (self *Joystick) StickName(stick int) string {
     return gostr(C.al_get_joystick_stick_name(self.handle, C.int(stick)))
 }
 
 // Returns the amount of axes for the stick on the joystick self.
-func (self *Joystick) GetNumAxes(stick int) int {
+func (self *Joystick) NumAxes(stick int) int {
     return int(C.al_get_joystick_num_axes(self.handle, C.int(stick)))
 }
 
 // Returns the name of the axis for the stick on the joystick self.
-func (self *Joystick) GetAxisName(stick, axis int) string {
+func (self *Joystick) AxisName(stick, axis int) string {
     return gostr(C.al_get_joystick_axis_name(self.handle, C.int(stick), C.int(axis)))
 }
 
 // Returns the amount of buttons on the joystick self.
-func (self *Joystick) GetNumButtons() int {
+func (self *Joystick) NumButtons() int {
     return int(C.al_get_joystick_num_buttons(self.handle))
 }
 
 // Returns the name of the button on the joystick self.
-func (self *Joystick) GetButtonName(button int) string {
+func (self *Joystick) ButtonName(button int) string {
     return gostr(C.al_get_joystick_button_name(self.handle, C.int(button)))
 }
 
 // Gets the state of the joystick
-func (self *Joystick) GetState() *JoystickState {
+func (self *Joystick) State() *JoystickState {
     state := &JoystickState{}
     C.al_get_joystick_state(self.handle, state.toC())
     return state

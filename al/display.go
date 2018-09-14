@@ -215,6 +215,16 @@ func (self *Display) Height() int {
     return int(C.al_get_display_height(self.handle))
 }
 
+// Gets the width of the display in float32
+func (self *Display) Widthf() float32 {
+    return float32(self.Width())
+}
+
+// Gets the height of the display in float32
+func (self *Display) Heightf() float32 {
+    return float32(self.Height())
+}
+
 // Gets the refresh rate of the display
 func (self *Display) RefreshRate() int {
     return int(C.al_get_display_refresh_rate(self.handle))
@@ -246,7 +256,7 @@ func setTargetCBitmap(bmp *C.ALLEGRO_BITMAP) {
 }
 
 // Sets the target bitmap of the allegro drawing
-func SetTargetBitmap(bmp Bitmap) {
+func SetTargetBitmap(bmp *Bitmap) {
     setTargetCBitmap(bmp.handle)
 }
 
@@ -290,9 +300,9 @@ func WaitForVsync() {
     C.al_wait_for_vsync()
 }
 
-// Gets the event source of the display to registeron an event queue 
+// Gets the event source of the display to register on an event queue 
 // with RegisterEventSource.
-func (self *Display) GetEventSource() *EventSource {
+func DisplayEventSource(self * Display) *EventSource {
     return wrapEventSourceRaw(C.al_get_display_event_source(self.handle))
 }
 
@@ -339,15 +349,15 @@ func (self *MonitorInfo) toC() *C.ALLEGRO_MONITOR_INFO {
     return (*C.ALLEGRO_MONITOR_INFO)(self)
 }
 
-// Gets the monitor info for the index'th video adapter
-func (self *MonitorInfo) Get(index int) bool {
+// Finds the monitor info for the index'th video adapter
+func (self *MonitorInfo) Find(index int) bool {
     return cb2b(C.al_get_monitor_info(C.int(index), self.toC()))
 }
 
-// Gets the monitor info for the index'th video adapter
-func GetMonitorInfo(index int) *MonitorInfo {
+// Finds the monitor info for the index'th video adapter
+func FindMonitorInfo(index int) *MonitorInfo {
     var info MonitorInfo
-    if (&info).Get(index) {
+    if (&info).Find(index) {
         return &info
     }
     return nil
@@ -358,11 +368,11 @@ func (mi * MonitorInfo) String() string {
 }
 
 // Gets all available monitors and their info
-func GetAllMonitorInfo() []*MonitorInfo {
+func AllMonitorInfo() []*MonitorInfo {
     count := NumVideoAdapters();
     info := make([]*MonitorInfo, count)
     for i := 0 ; i < count; i ++ {
-        info[i] = GetMonitorInfo(i)
+        info[i] = FindMonitorInfo(i)
     }
     return info
 }

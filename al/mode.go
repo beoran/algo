@@ -43,7 +43,7 @@ func NumDisplayModes() int {
     return int(C.al_get_num_display_modes())
 }
 
-func GetDisplayMode(index int) (disp * DisplayMode) {
+func FindDisplayMode(index int) (disp * DisplayMode) {
     disp = &DisplayMode{}
     if nil == C.al_get_display_mode(C.int(index), disp.toC()) {
         return nil
@@ -55,7 +55,7 @@ func DisplayModes() (modes [] *DisplayMode) {
     count := NumDisplayModes()
     modes = make([]*DisplayMode, count)
     for i:=0 ; i < count ; i ++ {
-        modes[i] = GetDisplayMode(i)
+        modes[i] = FindDisplayMode(i)
     }
     return modes
 }

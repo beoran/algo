@@ -56,7 +56,7 @@ func SetBlendColor(color Color) {
     C.al_set_blend_color(color.toC())
 }
 
-func GetBlender() (op BlendOperations, src, dest BlendMode) {
+func Blender() (op BlendOperations, src, dest BlendMode) {
     var cop, csrc, cdest C.int
     C.al_get_blender(&cop, &csrc, &cdest)
     op   = BlendOperations(cop)
@@ -65,7 +65,7 @@ func GetBlender() (op BlendOperations, src, dest BlendMode) {
     return op, src, dest
 }
 
-func GetBlendColor() Color {
+func BlendColor() Color {
     return wrapColor(C.al_get_blend_color())
 }
 
@@ -76,7 +76,7 @@ func SetSeparateBlender(op BlendOperations, src, dest BlendMode,
         C.int(alpha_op), C.int(alpha_src), C.int(alpha_dest))
 }
 
-func GetSeparateBlender() (op BlendOperations, src, dest BlendMode, 
+func SeparateBlender() (op BlendOperations, src, dest BlendMode, 
     alpha_op BlendOperations, alpha_src, alpha_dest BlendMode) {
     var cop, csrc, cdest, calpha_op, calpha_src, calpha_dest C.int
     C.al_get_separate_blender(&cop, &csrc, &cdest,

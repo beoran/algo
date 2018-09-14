@@ -196,7 +196,7 @@ type IndexBuffer struct {
     handle * C.ALLEGRO_INDEX_BUFFER
 }
 
-func GetPrimitivesVersion() uint32 {
+func PrimitivesVersion() uint32 {
     return uint32(C.al_get_allegro_primitives_version())
 }
 
@@ -462,6 +462,13 @@ func DrawFilledRectangle(x1, y1, x2, y2 float32, color Color) {
                    C.float(x2), C.float(y2), 
                    color.toC())
 } 
+
+func DrawFilledRectangleInt(x1, y1, x2, y2 int, color Color) {
+    C.al_draw_filled_rectangle(C.float(x1), C.float(y1), 
+                   C.float(x2), C.float(y2), 
+                   color.toC())
+} 
+
 
 
 func DrawFilledRoundedRectangle(x1, y1, x2, y2, rx, ry float32, color Color) {

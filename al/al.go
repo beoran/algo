@@ -72,7 +72,7 @@ func IsSystemInstalled() bool {
 }
 
 // Gets the raw version of Allegro linked to as an integer.
-func GetAllegroVersion() uint32 {
+func AllegroVersion() uint32 {
     return uint32(C.al_get_allegro_version())
 }
 
@@ -151,20 +151,32 @@ func (self *Path) Destroy() {
 }
 
 // Gets amount of components of the path name
-func (self *Path) GetPathNumComponents() int {
+func (self *Path) NumComponents() int {
     return int(C.al_get_path_num_components(self.handle))
 }
 
-// converst the allegro path to a string 
+// Gets the index'th component of the path name
+func (path *Path) Component(index int) string {
+    return C.GoString(C.al_get_path_component(path.handle, C.int(index)))
+}
+
+
+// Converts the allegro path to a string 
 func (self *Path) String() string {
     return gostr(C.al_path_cstr(self.handle, C.char(NATIVE_PATH_SEP)))
 }
+
+
+func (path * Path) MakeCanonical() * Path {
+    C.al_make_path_canonical(path.handle)
+    return path
+}
+
 
 /*
 func (self * Path) 
 
 
-AL_FUNC(int, al_get_path_num_components, (const ALLEGRO_PATH *path));
 AL_FUNC(const char*, al_get_path_component, (const ALLEGRO_PATH *path, int i));
 AL_FUNC(void, al_replace_path_component, (ALLEGRO_PATH *path, int i, const char *s));
 AL_FUNC(void, al_remove_path_component, (ALLEGRO_PATH *path, int i));
@@ -207,7 +219,7 @@ const (
 )
 
 // Gets a standard path location.
-func GetStandardPath(id int) *Path {
+func StandardPath(id int) *Path {
     return wrapPath(C.al_get_standard_path(C.int(id)))
 }
 
@@ -226,13 +238,13 @@ func SetAppName(name string) {
     C.al_set_app_name(cstr(name))
 }
 
-// Gets the name of the organisation
-func GetOrgName() string {
+// Gets the name of the organisation for an app
+func OrgName() string {
     return gostr(C.al_get_org_name())
 }
 
-// Sets the name of the app
-func GetAppName() string {
+// Gets the name of the app
+func AppName() string {
     return gostr(C.al_get_app_name())
 }
 
@@ -386,12 +398,12 @@ func (self *Timer) SetSpeed(speed_secs float64) {
 }
 
 // Gets the speed of the timer.
-func (self *Timer) GetSpeed() float64 {
+func (self *Timer) Speed() float64 {
     return float64(C.al_get_timer_speed(self.handle))
 }
 
 // Gets the count (in ticks) of the timer
-func (self *Timer) GetCount() int {
+func (self *Timer) Count() int {
     return int(C.al_get_timer_count(self.handle))
 }
 
@@ -407,7 +419,7 @@ func (self *Timer) AddCount(count int) {
 
 // Gets the event source of this timer that can be registered 
 // on an event queue with RegisterEventSource.
-func (self *Timer) GetEventSource() *EventSource {
+func TimerEventSource(self * Timer) *EventSource {
     return (*EventSource)(C.al_get_timer_event_source(self.handle))
 }
 

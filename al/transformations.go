@@ -90,6 +90,12 @@ func (trans * Transform) Translate(x, y float32) * Transform {
     return trans
 }
 
+func (trans * Transform) TranslateInt(x, y int) * Transform {
+    C.al_translate_transform(trans.toC(), C.float(x), C.float(y))
+    return trans
+}
+
+
 func (trans * Transform) Translate3D(x, y, z float32) * Transform {
     C.al_translate_transform_3d(trans.toC(), C.float(x), C.float(y), C.float(z))
     return trans
@@ -111,6 +117,12 @@ func (trans * Transform) Scale(x, y float32) * Transform {
     C.al_scale_transform(trans.toC(), C.float(x), C.float(y))
     return trans
 }
+
+func (trans * Transform) ScaleInt(x, y int) * Transform {
+    C.al_scale_transform(trans.toC(), C.float(x), C.float(y))
+    return trans
+}
+
 
 func (trans * Transform) Scale3D(x, y, z float32) * Transform {
     C.al_scale_transform_3d(trans.toC(), C.float(x), C.float(y), C.float(z))

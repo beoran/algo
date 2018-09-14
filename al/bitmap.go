@@ -23,12 +23,18 @@ func (bmp *Bitmap) toC() * C.ALLEGRO_BITMAP {
 
 
 // Destroys a bitmap. Use this only when really needed!
-func (self *Bitmap) Destroy() {
-    if self.handle != nil {
-        C.al_destroy_bitmap(self.handle)
+func (bmp *Bitmap) Destroy() {
+    if bmp.handle != nil {
+        C.al_destroy_bitmap(bmp.handle)
     }
-    self.handle = nil
+    bmp.handle = nil
 }
+
+// Alias for destoy to make this implement a Closer interface
+func (bmp *Bitmap) Close() {
+    bmp.Destroy()
+}
+
 
 // Wraps a C Allegro bitmap in a Bitmap. Sets no finalizer.
 func wrapBitmapRaw(handle *C.ALLEGRO_BITMAP) *Bitmap {
@@ -40,11 +46,11 @@ func wrapBitmapRaw(handle *C.ALLEGRO_BITMAP) *Bitmap {
 
 // Wraps a C Allegro Bitmap in a Bitmap. Sets a finalizer that calls Destroy.
 func wrapBitmap(handle *C.ALLEGRO_BITMAP) *Bitmap {
-    self := wrapBitmapRaw(handle)
-    if self != nil {
-        runtime.SetFinalizer(self, func(me *Bitmap) { me.Destroy() })
+    bmp := wrapBitmapRaw(handle)
+    if bmp != nil {
+        runtime.SetFinalizer(bmp, func(me *Bitmap) { me.Destroy() })
     }
-    return self
+    return bmp
 }
 
 const (
@@ -75,23 +81,23 @@ func AddNewBitmapFlag(flags int) {
 }
 
 // Gets the format for new bitmaps that are created using CreateBitmap
-func NewBitmapFormat(format int) int {
+func NewBitmapFormat() int {
     return int(C.al_get_new_bitmap_format())
 }
 
 // Gets the flags for new bitmaps that are created using CreateBitmap
-func NewBitmapFlags(flags int) int {
+func NewBitmapFlags() int {
     return int(C.al_get_new_bitmap_flags())
 }
 
 // Gets the width of the bitmap.
-func (self *Bitmap) Width() int {
-    return int(C.al_get_bitmap_width(self.handle))
+func (bmp *Bitmap) Width() int {
+    return int(C.al_get_bitmap_width(bmp.handle))
 }
 
 // Gets the height of the bitmap.
-func (self *Bitmap) Height() int {
-    return int(C.al_get_bitmap_height(self.handle))
+func (bmp *Bitmap) Height() int {
+    return int(C.al_get_bitmap_height(bmp.handle))
 }
 
 // Gets the width of the bitmap as a float32.
@@ -107,13 +113,13 @@ func (bmp *Bitmap) Heightf() float32 {
 
 
 // Gets the format of the bitmap.
-func (self *Bitmap) Format() int {
-    return int(C.al_get_bitmap_format(self.handle))
+func (bmp *Bitmap) Format() int {
+    return int(C.al_get_bitmap_format(bmp.handle))
 }
 
 // Gets the flags of the bitmap.
-func (self *Bitmap) Flags() int {
-    return int(C.al_get_bitmap_flags(self.handle))
+func (bmp *Bitmap) Flags() int {
+    return int(C.al_get_bitmap_flags(bmp.handle))
 }
 
 // Creates a new RAW bitmap. It will not be automatically destroyed!
@@ -138,14 +144,14 @@ func PutBlendedPixel(x, y int, color Color) {
 }
 
 // Gets a pixel from the bitmap
-func (self *Bitmap) GetPixel(x, y int) (color Color) {
-    return wrapColor(C.al_get_pixel(self.handle, C.int(x), C.int(y)))
+func (bmp *Bitmap) Pixel(x, y int) (color Color) {
+    return wrapColor(C.al_get_pixel(bmp.handle, C.int(x), C.int(y)))
 }
 
 // Converts pixels of the mask color to transparent pixels (with an alpha channel) 
 // for the given bitmap. Useful for, say "magic pink" backgrounds.
-func (self *Bitmap) ConvertMaskToAlpha(mask_color Color) {
-    C.al_convert_mask_to_alpha(self.handle, mask_color.toC())
+func (bmp *Bitmap) ConvertMaskToAlpha(mask_color Color) {
+    C.al_convert_mask_to_alpha(bmp.handle, mask_color.toC())
 }
 
 // Sets the clipping rectangle for the currently active bitmap. Anything drawn outside
@@ -168,29 +174,29 @@ func ClippingRectangle() (x, y, w, h int) {
 
 // Creates a RAW sub bitmap of the given bitmap that must be manually destoyed with 
 // Destroy() 
-func (self *Bitmap) CreateSubBitmapRaw(x, y, w, h int) *Bitmap {
-    return wrapBitmapRaw(C.al_create_sub_bitmap(self.handle,
+func (bmp *Bitmap) CreateSubBitmapRaw(x, y, w, h int) *Bitmap {
+    return wrapBitmapRaw(C.al_create_sub_bitmap(bmp.handle,
         C.int(x), C.int(y), C.int(w), C.int(h)))
 }
 
 // Creates a sub bitmap of the given bitmap that will automatically be destoyed
 // through a finalizer. However, you must ensure that this destroy happens before the 
 // parent bitmap is disposed of. You may need to call Destroy manyally anyway. 
-func (self *Bitmap) CreateSubBitmap(x, y, w, h int) *Bitmap {
-    return wrapBitmap(C.al_create_sub_bitmap(self.handle,
+func (bmp *Bitmap) CreateSubBitmap(x, y, w, h int) *Bitmap {
+    return wrapBitmap(C.al_create_sub_bitmap(bmp.handle,
         C.int(x), C.int(y), C.int(w), C.int(h)))
 }
 
 // Returns whether or not the bitmap is a sub bitmap 
-func (self *Bitmap) IsSubBitmap() bool {
-    return cb2b(C.al_is_sub_bitmap(self.handle))
+func (bmp *Bitmap) IsSubBitmap() bool {
+    return cb2b(C.al_is_sub_bitmap(bmp.handle))
 }
 
 // Returns the parent bitmap of this sub bitmap, or nil if there is no parent. 
 // This is a raw bitmap that has no finaliser set on it since likely 
 /// this function will only be used for inspection.
-func (self *Bitmap) Parent() *Bitmap {
-    return wrapBitmapRaw(C.al_get_parent_bitmap(self.handle))
+func (bmp *Bitmap) Parent() *Bitmap {
+    return wrapBitmapRaw(C.al_get_parent_bitmap(bmp.handle))
 }
 
 // Gets the Returns the X position within the parent of a sub bitmap
@@ -209,19 +215,19 @@ func (bmp *Bitmap) Reparent(parent * Bitmap, x, y, w, h int) {
 
 // Returns a raw clone of the bitmap, that will not be automatically 
 // destroyed.
-func (self *Bitmap) CloneRaw() *Bitmap {
-    return wrapBitmapRaw(C.al_clone_bitmap(self.handle))
+func (bmp *Bitmap) CloneRaw() *Bitmap {
+    return wrapBitmapRaw(C.al_clone_bitmap(bmp.handle))
 }
 
 // Returns a clone of the bitmap, that will automatically be
 // destroyed.
-func (self *Bitmap) Clone() *Bitmap {
-    return wrapBitmap(C.al_clone_bitmap(self.handle))
+func (bmp *Bitmap) Clone() *Bitmap {
+    return wrapBitmap(C.al_clone_bitmap(bmp.handle))
 }
 
 // Converts the bitmap to the current screen format, to ensure the blitting goes fast
-func (self *Bitmap) Convert() {
-    C.al_convert_bitmap(self.handle)
+func (bmp *Bitmap) Convert() {
+    C.al_convert_bitmap(bmp.handle)
 }
 
 // Converts all known unconverted memory bitmaps to the current screen format, 

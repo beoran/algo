@@ -60,13 +60,13 @@ func UninstallTouchInput() {
     C.al_uninstall_touch_input()
 }
 
-func GetTouchInputState() TouchInputState {
+func PollTouchInputState() TouchInputState {
     cstate := C.struct_ALLEGRO_TOUCH_INPUT_STATE{}
     C.al_get_touch_input_state(&cstate)
     return wrapTouchInputStateRaw(cstate)
 }
 
-func GetTouchInputEventSource() * EventSource {
+func TouchInputEventSource() * EventSource {
     return wrapEventSourceRaw(C.al_get_touch_input_event_source())
 }
 

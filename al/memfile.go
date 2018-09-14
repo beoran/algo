@@ -15,15 +15,15 @@ import "unsafe"
 
 // Returns the version of the image loading addon.
 // Gets the allegro font addon version
-func GetAllegroMemfileVersion() uint32 {
-	return (uint32)(C.al_get_allegro_memfile_version())
+func AllegroMemfileVersion() uint32 {
+    return (uint32)(C.al_get_allegro_memfile_version())
 }
 
 // Opens a memfile. Data can be put in a buffer and given to Allegro.
 func OpenMemfile(buffer []byte, mode string) *File {
-	cmode := cstr(mode)
-	defer cstrFree(cmode)
-	csize := C.int64_t(len(buffer))
-	cmem := unsafe.Pointer(&buffer[0])
-	return wrapFile(C.al_open_memfile(cmem, csize, cmode))
+    cmode := cstr(mode)
+    defer cstrFree(cmode)
+    csize := C.int64_t(len(buffer))
+    cmem := unsafe.Pointer(&buffer[0])
+    return wrapFile(C.al_open_memfile(cmem, csize, cmode))
 }

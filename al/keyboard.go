@@ -48,7 +48,7 @@ func SetKeyboardLeds(leds int) bool {
 
 // Returns the Keyboard event source that can be registered to an EventQueue
 // with RegisterEventSource.
-func GetKeyboardEventSource() *EventSource {
+func KeyboardEventSource() *EventSource {
     return (*EventSource)(C.al_get_keyboard_event_source())
 }
 
@@ -231,7 +231,7 @@ func (ks * KeyboardState) toC() * C.ALLEGRO_KEYBOARD_STATE {
 }
 
 
-func GetKeyboardState() * KeyboardState {
+func PollKeyboardState() * KeyboardState {
     ks := &KeyboardState{}
     C.al_get_keyboard_state(ks.toC());
     return ks
