@@ -1,1 +1,1 @@
-module gitlab.com/beoran/al5go
+module al5go
